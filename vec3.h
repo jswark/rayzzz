@@ -51,6 +51,32 @@ public:
     return *this *= 1/t;
   }
 
+   bool operator==(const vec3& v) const {
+    return (v.x() == this->x() && v.y() == this->y() && v.z() == this->z());
+  }
+
+  bool operator>(const vec3 &v) const {
+    if (this->x() > v.x())
+      return true;
+    else if (this->x() == v.x() && this->y() > v.y())
+      return true;
+    else if (this->x() == v.x() && this->y() == v.y() && this->z() > v.z())
+      return true;
+
+    return false;
+  }
+
+   bool operator<(const vec3 &v) const {
+     if (this->x() < v.x())
+       return true;
+     else if (this->x() == v.x() && this->y() < v.y())
+       return true;
+     else if (this->x() == v.x() && this->y() == v.y() && this->z() < v.z())
+       return true;
+
+     return false;
+  }
+
   double length() const {
     return sqrt(length_squared());
   }

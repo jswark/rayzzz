@@ -1,12 +1,11 @@
 #include "rtweekend.h"
 #include <iostream>
 
+#include "bvh.h"
 #include "camera.h"
 #include "color.h"
 #include "hittablelist.h"
 #include "material.h"
-#include "moving_sphere.h"
-#include "sphere.h"
 #include "triangle.h"
 
 hittable_list triangles() {
@@ -23,83 +22,31 @@ hittable_list triangles() {
       p7(1.0, 1.0, 0.0), p8(1.0, 1.0, -1.0);
 
   // very random scene, hundred apologises for the awful view
-  world.add(make_shared<triangle>(p1, p5, p7, red));
+  world.add(make_shared<triangle>(vec3(0, 0, 0.5), vec3(-1, 1, 0),
+                                  vec3(-1, -1, 0), red, 0));
 
-  world.add(make_shared<triangle>(p1, p4, p2, red));
+  hittable_list objects;
 
-  world.add(make_shared<triangle>(p5, p6, p8, white));
-  world.add(make_shared<triangle>(p3, p7, p8, white));
-  world.add(make_shared<triangle>(p1, p5, p6, white));
+  world.add(make_shared<triangle>(p1, p4, p2, red, 1));
 
-  return world;
+  world.add(make_shared<triangle>(vec3(-1.27, 0.19, 1),
+                                  vec3(-0.43, -0.43, 0.28), vec3(-1, -0.34, 0),
+                                  white, 2));
+  world.add(make_shared<triangle>(p3, p7, p8, white, 3));
+  world.add(make_shared<triangle>(p1, p5, p6, white, 4));
+
+  objects.add(make_shared<bvh_node>(world, 0, 1, 0));
+
+ /* for (int i = 0; i < bvh.size(); ++i)
+    std::cout << i << ":" << std::endl
+              << bvh[i].m_minBounds << std::endl
+              << bvh[i].m_instanceIndex << std::endl
+              << bvh[i].m_maxBounds << std::endl
+              << bvh[i].m_nodeOffset << std::endl; */
+
+  return objects;
 }
 
-hittable_list random_scene() {
-  hittable_list world;
-
-  auto checker =
-      make_shared<checker_texture>(color(0.2, 0.3, 0.1), color(0.9, 0.9, 0.9));
-  world.add(make_shared<sphere>(point3(0, -1000, 0), 1000,
-                                make_shared<lambertian>(checker)));
-
-  for (int a = -11; a < 11; a++) {
-    for (int b = -11; b < 11; b++) {
-      auto choose_mat = random_double();
-      point3 center(a + 0.9 * random_double(), 0.2, b + 0.9 * random_double());
-
-      if ((center - point3(4, 0.2, 0)).length() > 0.9) {
-        shared_ptr<material> sphere_material;
-
-        if (choose_mat < 0.8) {
-          // diffuse
-          auto albedo = color::random() * color::random();
-          sphere_material = make_shared<lambertian>(albedo);
-          auto center2 = center + vec3(0, random_double(0, .5), 0);
-          world.add(make_shared<moving_sphere>(center, center2, 0.0, 1.0, 0.2,
-                                               sphere_material));
-        } else if (choose_mat < 0.95) {
-          // metal
-          auto albedo = color::random(0.5, 1);
-          auto fuzz = random_double(0, 0.5);
-          sphere_material = make_shared<metal>(albedo, fuzz);
-          world.add(make_shared<sphere>(center, 0.2, sphere_material));
-        } else {
-          // glass
-          sphere_material = make_shared<dielectric>(1.5);
-          world.add(make_shared<sphere>(center, 0.2, sphere_material));
-        }
-      }
-    }
-  }
-
-  auto material1 = make_shared<dielectric>(1.5);
-  world.add(make_shared<sphere>(point3(0, 1, 0), 1.0, material1));
-
-  auto material2 = make_shared<lambertian>(color(0.4, 0.2, 0.1));
-  world.add(make_shared<sphere>(point3(-4, 1, 0), 1.0, material2));
-
-  auto material3 = make_shared<metal>(color(0.7, 0.6, 0.5), 0.0);
-  world.add(make_shared<sphere>(point3(4, 1, 0), 1.0, material3));
-
-  return world;
-}
-
-double hit_sphere(const point3 &center, double radius, const ray &r) {
-  vec3 oc = r.origin() - center;
-  auto a = r.direction().length_squared();
-  auto half_b = dot(oc, r.direction());
-  auto c = oc.length_squared() - radius * radius;
-  auto discriminant = half_b * half_b - a * c;
-  if (discriminant < 0) {
-    return -1.0;
-  } else {
-    return (-half_b - sqrt(discriminant)) / a;
-  }
-}
-
-/*function linearly blends white and blue depending on the height of the y
-coordinate after scaling the ray direction to unit length (so −1.0<𝑦<1.0)*/
-// linear blend
 color ray_color(const ray &r, const hittable &world, int depth) {
   hit_record rec;
 
@@ -122,27 +69,31 @@ color ray_color(const ray &r, const hittable &world, int depth) {
 int main() {
 
   // Image
-
   auto aspect_ratio = 16.0 / 9.0;
   int image_width = 400;
-  int samples_per_pixel = 100;
+  int samples_per_pixel = 400;
   const int max_depth = 50;
 
-  // World
-  auto world = triangles();
+  hittable_list world;
+
+  point3 lookfrom;
+  point3 lookat;
+  auto vfov = 40.0;
+  auto aperture = 0.0;
+
+  world = triangles();
+  lookfrom = point3(-10, 0, 13);
+  lookat = point3(-0.5, 0, 0);
+  vfov = 20.0;
 
   // Camera
-  point3 lookfrom(13, 2, 3);
-  point3 lookat(0, 0, 0);
+
   vec3 vup(0, 1, 0);
   auto dist_to_focus = 10.0;
-  auto aperture = 0.1;
   int image_height = static_cast<int>(image_width / aspect_ratio);
 
-  camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus,
+  camera cam(lookfrom, lookat, vup, vfov, aspect_ratio, aperture, dist_to_focus,
              0.0, 1.0);
-
-  // Render
 
   std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
 

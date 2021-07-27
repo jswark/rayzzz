@@ -21,8 +21,8 @@ template <class T> const T &max(const T &a, const T &b) {
 class triangle : public hittable {
 public:
   triangle() {}
-  triangle(point3 _v0, point3 _v1, point3 _v2, shared_ptr<material> m)
-      : v0(_v0), v1(_v1), v2(_v2), material(m) {}
+  triangle(point3 _v0, point3 _v1, point3 _v2, shared_ptr<material> m, int index)
+      : v0(_v0), v1(_v1), v2(_v2), material(m) , index(index){}
 
   virtual bool hit(const ray &r, double t_min, double t_max,
                    hit_record &rec) const override;
@@ -33,15 +33,21 @@ public:
     return true;
   }
 
+  virtual int getIndex() const override{
+      return index;
+  };
+
   point3 v0, v1, v2;
+  int index;
   shared_ptr<material> material;
 };
 
 bool triangle::hit(const ray &r, double t_min, double t_max,
                    hit_record &rec) const {
+
   vec3 normal = cross(v1 - v0, v2 - v0);
 
-  float t, u, v;
+  float t = 0.f, u = 0.f, v = 0.f;
 
   vec3 v0v1 = v1 - v0;
   vec3 v0v2 = v2 - v0;

@@ -10,19 +10,12 @@
 #include "hittable.h"
 #include "rtweekend.h"
 
-template <class T> const T &min(const T &a, const T &b) {
-  return (b < a) ? b : a;
-}
-
-template <class T> const T &max(const T &a, const T &b) {
-  return (b > a) ? b : a;
-}
-
 class triangle : public hittable {
 public:
   triangle() {}
-  triangle(point3 _v0, point3 _v1, point3 _v2, shared_ptr<material> m, int index)
-      : v0(_v0), v1(_v1), v2(_v2), material(m) , index(index){}
+  triangle(point3 _v0, point3 _v1, point3 _v2, shared_ptr<material> m,
+           int index)
+      : v0(_v0), v1(_v1), v2(_v2), material(m), index(index) {}
 
   virtual bool hit(const ray &r, double t_min, double t_max,
                    hit_record &rec) const override;
@@ -33,8 +26,8 @@ public:
     return true;
   }
 
-  virtual int getIndex() const override{
-      return index;
+  virtual std::vector<point3> getCoord() const override {
+    return {v0, v1, v2};
   };
 
   point3 v0, v1, v2;

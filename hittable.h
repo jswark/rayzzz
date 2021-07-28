@@ -25,7 +25,11 @@ class hittable {
 public:
   virtual bool hit(const ray& r, double t_min, double t_max, hit_record& rec) const = 0;
   virtual bool bounding_box(double time0, double time1, aabb& output_box) const = 0;
+
   [[nodiscard]] virtual std::vector<point3> getCoord() const = 0;
+  [[nodiscard]] virtual int getIndex() const = 0;
+
+  virtual bool reconstruct() const = 0;
 };
 
 #endif // RAYZZZ__HITTABLE_H_

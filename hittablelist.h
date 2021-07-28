@@ -22,6 +22,8 @@ public:
   virtual bool bounding_box(double time0, double time1,
                             aabb &output_box) const override;
   virtual std::vector<point3> getCoord() const override{};
+  virtual int getIndex() const override{};
+  virtual bool reconstruct() const override{};
 
 public:
   std::vector<shared_ptr<hittable>> objects;

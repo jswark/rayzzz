@@ -22,10 +22,10 @@ hittable_list triangles() {
       p7(1.0, 1.0, 0.0), p8(1.0, 1.0, -1.0);
 
   // very random scene, hundred apologises for the awful view
+  hittable_list objects;
+
   world.add(make_shared<triangle>(vec3(0, 0, 0.5), vec3(-1, 1, 0),
                                   vec3(-1, -1, 0), red, 0));
-
-  hittable_list objects;
 
   world.add(make_shared<triangle>(p1, p4, p2, red, 1));
 
@@ -37,12 +37,12 @@ hittable_list triangles() {
 
   objects.add(make_shared<bvh_node>(world, 0, 1, 0));
 
- /* for (int i = 0; i < bvh.size(); ++i)
+  for (int i = 0; i < bvh.size(); ++i)
     std::cout << i << ":" << std::endl
               << bvh[i].m_minBounds << std::endl
               << bvh[i].m_instanceIndex << std::endl
               << bvh[i].m_maxBounds << std::endl
-              << bvh[i].m_nodeOffset << std::endl; */
+              << bvh[i].m_nodeOffset << std::endl;
 
   return objects;
 }

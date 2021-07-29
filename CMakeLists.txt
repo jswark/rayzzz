@@ -18,3 +18,4 @@ source_group ("Header Files" FILES ${HEADERS})
 source_group ("Source Files" FILES ${SOURCES})
 
 add_executable(rayzzz ${HEADERS} ${SOURCES})
+include_directories(rayzzz external/)

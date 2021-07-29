@@ -3,8 +3,11 @@
 
 #include "hittable.h"
 #include "vec3.h"
+#include "ray.h"
+
 #include <cstdlib>
 #include <utility>
+#include <cmath>
 
 #include "aabb.h"
 #include "hittable.h"

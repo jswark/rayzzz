@@ -3,4 +3,18 @@ project(rayzzz)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(rayzzz main.cpp vec3.h color.h ray.h)
+file(GLOB MyHeaders *.h)
+file(GLOB MyCSources *.cpp)
+
+set (HEADERS
+    ${MyHeaders}
+    )
+
+set (SOURCES 
+    ${MyCSources}
+    )
+
+source_group ("Header Files" FILES ${HEADERS})
+source_group ("Source Files" FILES ${SOURCES})
+
+add_executable(rayzzz ${HEADERS} ${SOURCES})

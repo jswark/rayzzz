@@ -17,6 +17,37 @@ struct RGB
     unsigned char B;
 };
 
+void setDepthFirstVisitOrder(int nodeId, int nextId, int& savedRight)
+{
+    if (nodeId != 1) // root
+    {
+        bvh[nodeId - 1].m_nodeOffset = nextId;
+    }
+
+    if (!bvh[2 * nodeId - 1].isLeaf && !bvh[2 * nodeId].isLeaf && 2 * nodeId < bvh.size()) {
+        savedRight = 2 * nodeId; // save right index for offset
+    }
+
+    if (!bvh[2 * nodeId - 1].isLeaf && (2 * nodeId - 1 < bvh.size())) // not leaf, check left
+    {
+        int next = 2 * nodeId;
+        int nextNode = 2 * nodeId;
+        setDepthFirstVisitOrder(nextNode, next, savedRight);
+    }
+
+    if (!bvh[nodeId * 2].isLeaf && (2 * nodeId < bvh.size())) // not leaf, check right
+    {
+        int next = nextId;
+        int nextNode = 2 * nodeId + 1;
+        setDepthFirstVisitOrder(nextNode, next, savedRight);
+    }
+
+    if (bvh[nodeId * 2].isLeaf)
+    {
+        bvh[nodeId * 2].m_nodeOffset = savedRight;
+    }
+}
+
 hittable_list triangles()
 {
     hittable_list world;
@@ -42,12 +73,15 @@ hittable_list triangles()
 
     objects.add(make_shared<bvh_node>(world, 0, 1, 0));
 
-    /*for (int i = 0; i < bvh.size(); ++i)
+    int right = 2;
+    setDepthFirstVisitOrder(1, -1, right);
+
+   /* for (int i = 0; i < bvh.size(); ++i)
       std::cout << i << ":" << std::endl
                 << bvh[i].m_minBounds << std::endl
                 << bvh[i].m_instanceIndex << std::endl
                 << bvh[i].m_maxBounds << std::endl
-                << bvh[i].m_nodeOffset << std::endl;*/
+                << bvh[i].m_nodeOffset << std::endl; */
 
     return objects;
 }
@@ -60,7 +94,8 @@ color ray_color(const ray& r, const hittable& world, int depth)
     if (depth <= 0)
         return color(0, 0, 0);
 
-    if ((world.hit(r, 0.001, infinity, rec)))
+    //(world.hit(r, 0.001, infinity, rec))
+    if (hitAny(r, rec))
     {
         ray scattered;
         color attenuation;

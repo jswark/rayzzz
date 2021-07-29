@@ -39,6 +39,8 @@ public:
         return { v0, v1, v2 };
     };
 
+    virtual void reconstruct(int index) const override{};
+
     point3 v0, v1, v2;
     int index = -1;
     shared_ptr<material> material;

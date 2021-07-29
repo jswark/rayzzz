@@ -37,12 +37,12 @@ hittable_list triangles() {
 
   objects.add(make_shared<bvh_node>(world, 0, 1, 0));
 
-  for (int i = 0; i < bvh.size(); ++i)
+  /*for (int i = 0; i < bvh.size(); ++i)
     std::cout << i << ":" << std::endl
               << bvh[i].m_minBounds << std::endl
               << bvh[i].m_instanceIndex << std::endl
               << bvh[i].m_maxBounds << std::endl
-              << bvh[i].m_nodeOffset << std::endl;
+              << bvh[i].m_nodeOffset << std::endl;*/
 
   return objects;
 }
@@ -54,7 +54,7 @@ color ray_color(const ray &r, const hittable &world, int depth) {
   if (depth <= 0)
     return color(0, 0, 0);
 
-  if (world.hit(r, 0.001, infinity, rec)) {
+  if (hitAny(r, rec)) {
     ray scattered;
     color attenuation;
     if (rec.mat_ptr->scatter(r, rec, attenuation, scattered))

@@ -28,8 +28,6 @@ public:
 
   [[nodiscard]] virtual std::vector<point3> getCoord() const = 0;
   [[nodiscard]] virtual int getIndex() const = 0;
-
-  virtual bool reconstruct() const = 0;
 };
 
 #endif // RAYZZZ__HITTABLE_H_

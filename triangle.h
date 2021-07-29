@@ -30,8 +30,6 @@ public:
       return index;
   };
 
-  virtual bool reconstruct() const override{};
-
   virtual std::vector<point3> getCoord() const override {
     return {v0, v1, v2};
   };

@@ -23,7 +23,6 @@ public:
                             aabb &output_box) const override;
   virtual std::vector<point3> getCoord() const override{};
   virtual int getIndex() const override{};
-  virtual bool reconstruct() const override{};
 
 public:
   std::vector<shared_ptr<hittable>> objects;

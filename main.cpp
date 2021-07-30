@@ -8,7 +8,7 @@
 #include <iostream>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
+#include <stb_image_write.h>
 
 struct RGB
 {
@@ -110,10 +110,12 @@ int main()
 
     camera cam(lookfrom, lookat, vup, vfov, aspect_ratio, aperture, dist_to_focus, 0.0, 1.0);
 
-    struct RGB data[image_height][image_width];
+    std::vector<std::vector<RGB>> data;
+    data.resize(image_height);
 
     for (int j = image_height - 1; j >= 0; --j)
     {
+        data[j].resize(image_width);
         std::cerr << "\rScanlines remaining: " << j << ' ' << std::flush;
         for (int i = 0; i < image_width; ++i)
         {
@@ -145,5 +147,5 @@ int main()
         }
     }
 
-    stbi_write_png("result.png", image_width, image_height, 3, data, 3 * image_width);
+    stbi_write_png("result.png", image_width, image_height, 3, data.data(), 3 * image_width);
 }

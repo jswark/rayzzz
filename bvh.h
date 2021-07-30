@@ -124,17 +124,17 @@ void bvh_node::setDepthFirstVisitOrder(int nodeId, int nextId, int& savedRight)
         bvh[nodeId].m_nodeOffset = nextId;
     }
 
-    if (!bvh[leftIndex].isLeaf && !bvh[rightIndex].isLeaf && rightIndex < bvh.size())
+    if (rightIndex < bvh.size() && !bvh[leftIndex].isLeaf && !bvh[rightIndex].isLeaf)
     {
         savedRight = rightIndex; // save right index for offset
     }
 
-    if (!bvh[leftIndex].isLeaf && (leftIndex < bvh.size())) // not leaf, check left
+    if (leftIndex < bvh.size() && !bvh[leftIndex].isLeaf) // not leaf, check left
     {
         setDepthFirstVisitOrder(leftIndex, rightIndex, savedRight);
     }
 
-    if (!bvh[rightIndex].isLeaf && (rightIndex < bvh.size())) // not leaf, check right
+    if (rightIndex < bvh.size() && !bvh[rightIndex].isLeaf) // not leaf, check right
     {
         setDepthFirstVisitOrder(rightIndex, nextId, savedRight);
     }

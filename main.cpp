@@ -10,13 +10,6 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
 
-struct RGB
-{
-    unsigned char R;
-    unsigned char G;
-    unsigned char B;
-};
-
 hittable_list triangles()
 {
     hittable_list world;

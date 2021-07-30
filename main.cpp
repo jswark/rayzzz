@@ -17,37 +17,6 @@ struct RGB
     unsigned char B;
 };
 
-void setDepthFirstVisitOrder(int nodeId, int nextId, int& savedRight)
-{
-    if (nodeId != 1) // root
-    {
-        bvh[nodeId - 1].m_nodeOffset = nextId;
-    }
-
-    if (!bvh[2 * nodeId - 1].isLeaf && !bvh[2 * nodeId].isLeaf && 2 * nodeId < bvh.size()) {
-        savedRight = 2 * nodeId; // save right index for offset
-    }
-
-    if (!bvh[2 * nodeId - 1].isLeaf && (2 * nodeId - 1 < bvh.size())) // not leaf, check left
-    {
-        int next = 2 * nodeId;
-        int nextNode = 2 * nodeId;
-        setDepthFirstVisitOrder(nextNode, next, savedRight);
-    }
-
-    if (!bvh[nodeId * 2].isLeaf && (2 * nodeId < bvh.size())) // not leaf, check right
-    {
-        int next = nextId;
-        int nextNode = 2 * nodeId + 1;
-        setDepthFirstVisitOrder(nextNode, next, savedRight);
-    }
-
-    if (bvh[nodeId * 2].isLeaf)
-    {
-        bvh[nodeId * 2].m_nodeOffset = savedRight;
-    }
-}
-
 hittable_list triangles()
 {
     hittable_list world;
@@ -71,12 +40,17 @@ hittable_list triangles()
     world.add(make_shared<triangle>(p3, p7, p8, white, 3));
     world.add(make_shared<triangle>(p1, p5, p6, white, 4));
 
+     /* world.add(make_shared<triangle>(vec3(-1.27, 0.19, 1), vec3(-0.43, -0.43, 0.28), vec3(-1, -0.34, 0), white, 5));
+     world.add(make_shared<triangle>(p3, p7, p8, white, 6));
+     world.add(make_shared<triangle>(p1, p5, p6, white, 7));
+
+     world.add(make_shared<triangle>(vec3(-1.27, 0.19, 1), vec3(-0.43, -0.43, 0.28), vec3(-1, -0.34, 0), white, 8));
+     world.add(make_shared<triangle>(p3, p7, p8, white, 9));
+     world.add(make_shared<triangle>(p1, p5, p6, white, 10)); */
+
     objects.add(make_shared<bvh_node>(world, 0, 1, 0));
 
-    int right = 2;
-    setDepthFirstVisitOrder(1, -1, right);
-
-   /* for (int i = 0; i < bvh.size(); ++i)
+    /* for (int i = 0; i < bvh.size(); ++i)
       std::cout << i << ":" << std::endl
                 << bvh[i].m_minBounds << std::endl
                 << bvh[i].m_instanceIndex << std::endl

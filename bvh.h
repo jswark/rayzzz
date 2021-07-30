@@ -19,7 +19,7 @@ struct BVHNode
     bool isLeaf = false;
 };
 
-std::vector<BVHNode> bvh(100);
+std::vector<BVHNode> bvh(0);
 
 class bvh_node : public hittable
 {
@@ -27,8 +27,21 @@ public:
     bvh_node(const hittable_list& list, double time0, double time1, int index)
         : bvh_node(list.objects, 0, list.objects.size(), time0, time1, index)
     {
-        bvh.resize(pow(2, (list.objects.size() - 1)));
+        bvh.resize(2 * pow(2, ceil(log(list.objects.size())) + 1) - 1);
         reconstruct(0);
+
+        int rightSib = 1;
+        setDepthFirstVisitOrder(0, -1, rightSib);
+
+        // set last offset
+        for (int i = bvh.size(); i > 0; --i)
+        {
+            if (bvh[i].m_instanceIndex != -1)
+            {
+                bvh[i].m_nodeOffset = -1;
+                break;
+            }
+        }
     };
 
     bvh_node(const std::vector<shared_ptr<hittable>>& src_objects,
@@ -53,7 +66,7 @@ public:
 
     virtual void reconstruct(int index) const override;
 
-    bool hitAny(const ray& r, hit_record& rec);
+    void setDepthFirstVisitOrder(int nodeId, int nextId, int& savedRight);
 
 public:
     shared_ptr<hittable> left;
@@ -84,7 +97,9 @@ void bvh_node::reconstruct(int index) const
     bvh[2 * index + 1].m_minBounds = box.min();
     bvh[2 * index + 1].coord = coordLeft;
     if (2 * index + 2 < bvh.size())
+    {
         bvh[2 * index + 1].m_nodeOffset = 2 * index + 2; // set right bro
+    }
 
     if (indexRight != -1)
     {
@@ -95,9 +110,36 @@ void bvh_node::reconstruct(int index) const
     bvh[2 * index + 2].m_minBounds = box.min();
     bvh[2 * index + 2].coord = coordRight;
 
-
     left->reconstruct(2 * index + 1);
     right->reconstruct(2 * index + 2);
+}
+
+void bvh_node::setDepthFirstVisitOrder(int nodeId, int nextId, int& savedRight)
+{
+    if (nodeId != 0) // root
+    {
+        bvh[nodeId].m_nodeOffset = nextId;
+    }
+
+    if (!bvh[2 * nodeId + 1].isLeaf && !bvh[2 * nodeId + 2].isLeaf && 2 * nodeId + 2 < bvh.size())
+    {
+        savedRight = 2 * nodeId + 2; // save right index for offset
+    }
+
+    if (!bvh[2 * nodeId + 1].isLeaf && (2 * nodeId + 1 < bvh.size())) // not leaf, check left
+    {
+        setDepthFirstVisitOrder(2 * nodeId + 1, 2 * nodeId + 2, savedRight);
+    }
+
+    if (!bvh[nodeId * 2 + 2].isLeaf && (2 * nodeId + 2 < bvh.size())) // not leaf, check right
+    {
+        setDepthFirstVisitOrder(2 * nodeId + 2, nextId, savedRight);
+    }
+
+    if (bvh[nodeId * 2 + 2].isLeaf) // save offset for right leaf
+    {
+        bvh[nodeId * 2 + 2].m_nodeOffset = savedRight;
+    }
 }
 
 bool bvh_node::bounding_box(double time0, double time1, aabb& output_box) const
@@ -200,13 +242,12 @@ bool hitAny(const ray& r, hit_record& rec)
             nodeIndex = node.m_nodeOffset;
             continue;
         }
-        std::cout << nodeIndex << " " << node.m_nodeOffset << std::endl;
+
         if (node.m_nodeOffset * 2 + 2 == nodeIndex)
         { // very right last node
             nodeIndex = -1;
             continue;
         }
-
         if (node.isLeaf && node.m_nodeOffset != -1)
             nodeIndex = node.m_nodeOffset;
         else if (!node.isLeaf && 2 * nodeIndex + 1 < bvh.size())
@@ -214,6 +255,7 @@ bool hitAny(const ray& r, hit_record& rec)
         else
             nodeIndex = node.m_nodeOffset;
     }
+
     return false;
 }
 

@@ -34,7 +34,7 @@ public:
         setDepthFirstVisitOrder(0, -1, rightSib);
 
         // set last offset
-        for (int i = bvh.size(); i > 0; --i)
+        for (int i = bvh.size() - 1; i > 0; --i)
         {
             if (bvh[i].m_instanceIndex != -1)
             {
@@ -116,29 +116,32 @@ void bvh_node::reconstruct(int index) const
 
 void bvh_node::setDepthFirstVisitOrder(int nodeId, int nextId, int& savedRight)
 {
+    int leftIndex = 2 * nodeId + 1;
+    int rightIndex = 2 * nodeId + 2;
+
     if (nodeId != 0) // root
     {
         bvh[nodeId].m_nodeOffset = nextId;
     }
 
-    if (!bvh[2 * nodeId + 1].isLeaf && !bvh[2 * nodeId + 2].isLeaf && 2 * nodeId + 2 < bvh.size())
+    if (!bvh[leftIndex].isLeaf && !bvh[rightIndex].isLeaf && rightIndex < bvh.size())
     {
-        savedRight = 2 * nodeId + 2; // save right index for offset
+        savedRight = rightIndex; // save right index for offset
     }
 
-    if (!bvh[2 * nodeId + 1].isLeaf && (2 * nodeId + 1 < bvh.size())) // not leaf, check left
+    if (!bvh[leftIndex].isLeaf && (leftIndex < bvh.size())) // not leaf, check left
     {
-        setDepthFirstVisitOrder(2 * nodeId + 1, 2 * nodeId + 2, savedRight);
+        setDepthFirstVisitOrder(leftIndex, rightIndex, savedRight);
     }
 
-    if (!bvh[nodeId * 2 + 2].isLeaf && (2 * nodeId + 2 < bvh.size())) // not leaf, check right
+    if (!bvh[rightIndex].isLeaf && (rightIndex < bvh.size())) // not leaf, check right
     {
-        setDepthFirstVisitOrder(2 * nodeId + 2, nextId, savedRight);
+        setDepthFirstVisitOrder(rightIndex, nextId, savedRight);
     }
 
-    if (bvh[nodeId * 2 + 2].isLeaf) // save offset for right leaf
+    if (rightIndex < bvh.size() && bvh[rightIndex].isLeaf) // save offset for right leaf
     {
-        bvh[nodeId * 2 + 2].m_nodeOffset = savedRight;
+        bvh[rightIndex].m_nodeOffset = savedRight;
     }
 }
 

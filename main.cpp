@@ -40,13 +40,13 @@ hittable_list triangles()
     world.add(make_shared<triangle>(p3, p7, p8, white, 3));
     world.add(make_shared<triangle>(p1, p5, p6, white, 4));
 
-     /* world.add(make_shared<triangle>(vec3(-1.27, 0.19, 1), vec3(-0.43, -0.43, 0.28), vec3(-1, -0.34, 0), white, 5));
-     world.add(make_shared<triangle>(p3, p7, p8, white, 6));
-     world.add(make_shared<triangle>(p1, p5, p6, white, 7));
+    /* world.add(make_shared<triangle>(vec3(-1.27, 0.19, 1), vec3(-0.43, -0.43, 0.28), vec3(-1, -0.34, 0), white, 5));
+    world.add(make_shared<triangle>(p3, p7, p8, white, 6));
+    world.add(make_shared<triangle>(p1, p5, p6, white, 7));
 
-     world.add(make_shared<triangle>(vec3(-1.27, 0.19, 1), vec3(-0.43, -0.43, 0.28), vec3(-1, -0.34, 0), white, 8));
-     world.add(make_shared<triangle>(p3, p7, p8, white, 9));
-     world.add(make_shared<triangle>(p1, p5, p6, white, 10)); */
+    world.add(make_shared<triangle>(vec3(-1.27, 0.19, 1), vec3(-0.43, -0.43, 0.28), vec3(-1, -0.34, 0), white, 8));
+    world.add(make_shared<triangle>(p3, p7, p8, white, 9));
+    world.add(make_shared<triangle>(p1, p5, p6, white, 10)); */
 
     objects.add(make_shared<bvh_node>(world, 0, 1, 0));
 
@@ -103,19 +103,19 @@ int main()
     vfov = 20.0;
 
     // Camera
-
     vec3 vup(0, 1, 0);
     auto dist_to_focus = 10.0;
     int image_height = static_cast<int>(image_width / aspect_ratio);
 
     camera cam(lookfrom, lookat, vup, vfov, aspect_ratio, aperture, dist_to_focus, 0.0, 1.0);
 
-    std::vector<std::vector<RGB>> data;
-    data.resize(image_height);
+    std::vector<int8_t> colorData;
+
+    colorData.resize(image_height * image_width * 3);
+    int index = 0;
 
     for (int j = image_height - 1; j >= 0; --j)
     {
-        data[j].resize(image_width);
         std::cerr << "\rScanlines remaining: " << j << ' ' << std::flush;
         for (int i = 0; i < image_width; ++i)
         {
@@ -141,11 +141,11 @@ int main()
             int ir = static_cast<int>(256 * clamp(r, 0.0, 0.999)), ig = static_cast<int>(256 * clamp(g, 0.0, 0.999)),
                 ib = static_cast<int>(256 * clamp(b, 0.0, 0.999));
 
-            data[j][i].R = ir;
-            data[j][i].G = ig;
-            data[j][i].B = ib;
+            colorData[index++] = ir;
+            colorData[index++] = ig;
+            colorData[index++] = ib;
         }
     }
 
-    stbi_write_png("result.png", image_width, image_height, 3, data.data(), 3 * image_width);
+    stbi_write_jpg("result.jpg", image_width, image_height, 3, colorData.data(), 3 * image_width);
 }

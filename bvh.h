@@ -27,7 +27,7 @@ public:
     bvh_node(const hittable_list& list, double time0, double time1, int index)
         : bvh_node(list.objects, 0, list.objects.size(), time0, time1, index)
     {
-        bvh.resize(2 * pow(2, ceil(log(list.objects.size())) + 1) - 1);
+        bvh.resize(2 * getNextPow2(list.objects.size() - 1));
         reconstruct(0);
 
         int rightSib = 1;
@@ -68,6 +68,19 @@ public:
 
     void setDepthFirstVisitOrder(int nodeId, int nextId, int& savedRight);
 
+    unsigned int getNextPow2(unsigned int n)  // compute the next highest power of 2 of 32-bit v
+    {
+        n--;
+        n |= n >> 1;
+        n |= n >> 2;
+        n |= n >> 4;
+        n |= n >> 8;
+        n |= n >> 16;
+        n++;
+
+        return n;
+    }
+
 public:
     shared_ptr<hittable> left;
     shared_ptr<hittable> right;
@@ -80,6 +93,9 @@ public:
 
 void bvh_node::reconstruct(int index) const
 {
+    int leftIndex = 2 * index + 1;
+    int rightIndex = 2 * index + 2;
+
     if (index == 0) // root
     {
         bvh[0].m_instanceIndex = indexLeft;
@@ -90,28 +106,28 @@ void bvh_node::reconstruct(int index) const
 
     if (indexLeft != -1)
     {
-        bvh[2 * index + 1].isLeaf = true;
+        bvh[leftIndex].isLeaf = true;
     }
-    bvh[2 * index + 1].m_instanceIndex = indexLeft;
-    bvh[2 * index + 1].m_maxBounds = box.max();
-    bvh[2 * index + 1].m_minBounds = box.min();
-    bvh[2 * index + 1].coord = coordLeft;
-    if (2 * index + 2 < bvh.size())
+    bvh[leftIndex].m_instanceIndex = indexLeft;
+    bvh[leftIndex].m_maxBounds = box.max();
+    bvh[leftIndex].m_minBounds = box.min();
+    bvh[leftIndex].coord = coordLeft;
+    if (rightIndex < bvh.size())
     {
-        bvh[2 * index + 1].m_nodeOffset = 2 * index + 2; // set right bro
+        bvh[leftIndex].m_nodeOffset = rightIndex; // set right bro
     }
 
     if (indexRight != -1)
     {
-        bvh[2 * index + 2].isLeaf = true;
+        bvh[rightIndex].isLeaf = true;
     }
-    bvh[2 * index + 2].m_instanceIndex = indexRight;
-    bvh[2 * index + 2].m_maxBounds = box.max();
-    bvh[2 * index + 2].m_minBounds = box.min();
-    bvh[2 * index + 2].coord = coordRight;
+    bvh[rightIndex].m_instanceIndex = indexRight;
+    bvh[rightIndex].m_maxBounds = box.max();
+    bvh[rightIndex].m_minBounds = box.min();
+    bvh[rightIndex].coord = coordRight;
 
-    left->reconstruct(2 * index + 1);
-    right->reconstruct(2 * index + 2);
+    left->reconstruct(leftIndex);
+    right->reconstruct(rightIndex);
 }
 
 void bvh_node::setDepthFirstVisitOrder(int nodeId, int nextId, int& savedRight)
@@ -251,10 +267,11 @@ bool hitAny(const ray& r, hit_record& rec)
             nodeIndex = -1;
             continue;
         }
+        int indexLeft = 2 * nodeIndex + 1;
         if (node.isLeaf && node.m_nodeOffset != -1)
             nodeIndex = node.m_nodeOffset;
-        else if (!node.isLeaf && 2 * nodeIndex + 1 < bvh.size())
-            nodeIndex = 2 * nodeIndex + 1;
+        else if (!node.isLeaf && indexLeft < bvh.size())
+            nodeIndex = indexLeft;
         else
             nodeIndex = node.m_nodeOffset;
     }

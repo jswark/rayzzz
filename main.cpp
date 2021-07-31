@@ -4,14 +4,19 @@
 #include "material.h"
 #include "rtweekend.h"
 #include "triangle.h"
-
+#include "modelloader.h"
 #include <iostream>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
 
+const std::string PATH = "misc/Cube";
+
 hittable_list triangles()
 {
+    ModelLoader* modelLoader;
+    modelLoader->loadModelGltf(PATH);
+
     hittable_list world;
 
     auto red = make_shared<lambertian>(color(.65, .05, .05));

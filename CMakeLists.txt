@@ -18,5 +18,5 @@ source_group ("Header Files" FILES ${HEADERS})
 source_group ("Source Files" FILES ${SOURCES})
 
 
-add_executable(rayzzz ${HEADERS} ${SOURCES})
-target_include_directories(rayzzz PUBLIC external/)
+add_executable(rayzzz ${HEADERS} ${SOURCES} modelloader/modelloader.cpp)
+target_include_directories(rayzzz PUBLIC external/stb/ external/tinygltf/tinygltf external/glm/glm modelloader/)

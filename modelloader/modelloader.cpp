@@ -1,7 +1,11 @@
 #include "modelloader.h"
 
 #define TINYGLTF_IMPLEMENTATION
+#include "hittablelist.h"
+#include "material.h"
+#include "rtweekend.h"
 #include "tiny_gltf.h"
+#include "triangle.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -15,7 +19,8 @@
 void processPrimitive(const tinygltf::Model& model,
                       const tinygltf::Primitive& primitive,
                       const glm::float4x4& transform,
-                      const float globalScale)
+                      const float globalScale,
+                      hittable_list& world)
 {
     using namespace std;
     assert(primitive.attributes.find("POSITION") != primitive.attributes.end());
@@ -64,17 +69,33 @@ void processPrimitive(const tinygltf::Model& model,
     }
 
     glm::float3 sum = glm::float3(0.0f, 0.0f, 0.0f);
-    std::vector<nevk::Scene::Vertex> vertices;
-    vertices.reserve(vertexCount);
+    // std::vector<nevk::Scene::Vertex> vertices;
+    // vertices.reserve(vertexCount);
+    uint32_t currVertexNumber = 0;
+    auto red = make_shared<lambertian>(color(.65, .05, .05));
+    std::vector<glm::vec3> triangle;
     for (uint32_t v = 0; v < vertexCount; ++v)
     {
-        nevk::Scene::Vertex vertex{};
-        vertex.pos = glm::make_vec3(&positionData[v * posStride]) * globalScale;
-        vertex.normal = packNormal(
-            glm::normalize(glm::vec3(normalsData ? glm::make_vec3(&normalsData[v * normalStride]) : glm::vec3(0.0f))));
-        vertex.uv = packUV(texCoord0Data ? glm::make_vec2(&texCoord0Data[v * texCoord0Stride]) : glm::vec3(0.0f));
-        vertices.push_back(vertex);
-        sum += vertex.pos;
+        // nevk::Scene::Vertex vertex{};
+        ++currVertexNumber;
+        glm::vec3 pos = glm::make_vec3(&positionData[v * posStride]) * globalScale;
+        triangle.push_back(pos);
+
+        if (currVertexNumber == 3)
+        {
+            // todo fix idk
+            world.add(make_shared<triangle>(vec3(triangle[0].x, triangle[0].y, triangle[0].z),
+                                            vec3(triangle[1].x, triangle[1].y, triangle[1].z),
+                                            vec3(triangle[2].x, triangle[2].y, triangle[2].z), red, 0));
+            triangle.clear();
+            currVertexNumber = 0;
+        }
+        // vertex.normal = packNormal(
+        //     glm::normalize(glm::vec3(normalsData ? glm::make_vec3(&normalsData[v * normalStride]) :
+        //     glm::vec3(0.0f))));
+        // vertex.uv = packUV(texCoord0Data ? glm::make_vec2(&texCoord0Data[v * texCoord0Stride]) : glm::vec3(0.0f));
+        // vertices.push_back(vertex);
+        // sum += vertex.pos;
     }
     const glm::float3 massCenter = sum / (float)vertexCount;
 
@@ -126,24 +147,24 @@ void processPrimitive(const tinygltf::Model& model,
         }
     }
 
-    uint32_t meshId = scene.createMesh(vertices, indices);
-    assert(meshId != -1);
-    uint32_t instId = scene.createInstance(meshId, matId, transform, massCenter);
-    assert(instId != -1);
+    // uint32_t meshId = scene.createMesh(vertices, indices);
+    // assert(meshId != -1);
+    // uint32_t instId = scene.createInstance(meshId, matId, transform, massCenter);
+    // assert(instId != -1);
 }
 
 void processMesh(const tinygltf::Model& model,
-                 nevk::Scene& scene,
                  const tinygltf::Mesh& mesh,
                  const glm::float4x4& transform,
-                 const float globalScale)
+                 const float globalScale,
+                 hittable_list& world)
 {
     using namespace std;
     cout << "Mesh name: " << mesh.name << endl;
     cout << "Primitive count: " << mesh.primitives.size() << endl;
     for (size_t i = 0; i < mesh.primitives.size(); ++i)
     {
-        processPrimitive(model, scene, mesh.primitives[i], transform, globalScale);
+        processPrimitive(model, mesh.primitives[i], transform, globalScale, world);
     }
 }
 
@@ -190,10 +211,10 @@ glm::float4x4 getTransform(const tinygltf::Node& node, const float globalScale)
 }
 
 void processNode(const tinygltf::Model& model,
-                 nevk::Scene& scene,
                  const tinygltf::Node& node,
                  const glm::float4x4& baseTransform,
-                 const float globalScale)
+                 const float globalScale,
+                 hittable_list world)
 {
     using namespace std;
     cout << "Node name: " << node.name << endl;
@@ -204,7 +225,7 @@ void processNode(const tinygltf::Model& model,
     if (node.mesh != -1) // mesh exist
     {
         const tinygltf::Mesh& mesh = model.meshes[node.mesh];
-        processMesh(model, scene, mesh, globalTransform, globalScale);
+        processMesh(model, mesh, globalTransform, globalScale, world);
     }
     else if (node.camera != -1) // camera node
     {
@@ -214,14 +235,14 @@ void processNode(const tinygltf::Model& model,
         glm::vec3 skew;
         glm::vec4 perspective;
         glm::decompose(globalTransform, scale, rotation, translation, skew, perspective);
-        scene.getCamera(node.camera).position = translation;
-        scene.getCamera(node.camera).mOrientation = rotation;
-        scene.getCamera(node.camera).updateViewMatrix();
+        // scene.getCamera(node.camera).position = translation;
+        // scene.getCamera(node.camera).mOrientation = rotation;
+        // scene.getCamera(node.camera).updateViewMatrix();
     }
 
     for (int i = 0; i < node.children.size(); ++i)
     {
-        processNode(model, scene, model.nodes[node.children[i]], globalTransform, globalScale);
+        processNode(model, model.nodes[node.children[i]], globalTransform, globalScale, world);
     }
 }
 /*
@@ -253,7 +274,8 @@ void loadCameras(const tinygltf::Model& model, nevk::Scene& scene)
     }
 }
 */
-bool ModelLoader::loadModelGltf(const std::string& modelPath)
+// todo fix idk
+bool ModelLoader::loadModelGltf(const std::string& modelPath, hittable_list& world)
 {
     if (modelPath.empty())
     {
@@ -278,14 +300,14 @@ bool ModelLoader::loadModelGltf(const std::string& modelPath)
 
     int sceneId = model.defaultScene;
 
-   // loadCameras(model);
+    // loadCameras(model);
 
     const float globalScale = 1.0f;
 
     for (int i = 0; i < model.scenes[sceneId].nodes.size(); ++i)
     {
         const int rootNodeIdx = model.scenes[sceneId].nodes[i];
-        processNode(model, model.nodes[rootNodeIdx], glm::float4x4(1.0f), globalScale);
+        processNode(model, model.nodes[rootNodeIdx], glm::float4x4(1.0f), globalScale, world);
     }
     return res;
 }

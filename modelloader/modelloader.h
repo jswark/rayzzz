@@ -6,11 +6,8 @@
 
 class ModelLoader
 {
-private:
-    TextureManager* mTexManager = nullptr;
-
 public:
-    explicit ModelLoader(nevk::TextureManager* texManager) : mTexManager(texManager){};
+    explicit ModelLoader()= default;;
 
-    bool loadModelGltf(const std::string& modelPath);
+    bool loadModelGltf(const std::string& modelPath, hittable_list& world);
 };

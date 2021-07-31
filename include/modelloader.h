@@ -1,8 +1,15 @@
-#include "modelloader.h"
+#pragma once
 
+#include "bvh.h"
+#include "camera.h"
 #include "material.h"
-#include "rtweekend.h"
-#include "triangle.h"
+
+#include <iostream>
+
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+
+#define TINYGLTF_IMPLEMENTATION
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -11,7 +18,8 @@
 #include <glm/gtx/compatibility.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
 
-#include <iostream>
+#include "triangle.h"
+#include <tiny_gltf.h>
 
 void processPrimitive(const tinygltf::Model& model,
                       const tinygltf::Primitive& primitive,
@@ -209,7 +217,7 @@ void processNode(const tinygltf::Model& model,
                  const tinygltf::Node& node,
                  const glm::float4x4& baseTransform,
                  const float globalScale,
-                 hittable_list world)
+                 hittable_list& world)
 {
     using namespace std;
     cout << "Node name: " << node.name << endl;
@@ -270,7 +278,7 @@ void loadCameras(const tinygltf::Model& model)
 }
 */
 
-bool ModelLoader::loadModelGltf(const std::string& modelPath, hittable_list& world)
+bool loadModelGltf(const std::string& modelPath, hittable_list& world)
 {
     if (modelPath.empty())
     {

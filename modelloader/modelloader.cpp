@@ -1,10 +1,7 @@
 #include "modelloader.h"
 
-#define TINYGLTF_IMPLEMENTATION
-#include "hittablelist.h"
 #include "material.h"
 #include "rtweekend.h"
-#include "tiny_gltf.h"
 #include "triangle.h"
 
 #include <glm/glm.hpp>
@@ -73,21 +70,19 @@ void processPrimitive(const tinygltf::Model& model,
     // vertices.reserve(vertexCount);
     uint32_t currVertexNumber = 0;
     auto red = make_shared<lambertian>(color(.65, .05, .05));
-    std::vector<glm::vec3> triangle;
+    std::vector<glm::vec3> currTriangle;
     for (uint32_t v = 0; v < vertexCount; ++v)
     {
-        // nevk::Scene::Vertex vertex{};
         ++currVertexNumber;
         glm::vec3 pos = glm::make_vec3(&positionData[v * posStride]) * globalScale;
-        triangle.push_back(pos);
+        currTriangle.push_back(pos);
 
         if (currVertexNumber == 3)
         {
-            // todo fix idk
-            world.add(make_shared<triangle>(vec3(triangle[0].x, triangle[0].y, triangle[0].z),
-                                            vec3(triangle[1].x, triangle[1].y, triangle[1].z),
-                                            vec3(triangle[2].x, triangle[2].y, triangle[2].z), red, 0));
-            triangle.clear();
+            world.add(make_shared<triangle>(vec3(currTriangle[0].x, currTriangle[0].y, currTriangle[0].z),
+                                            vec3(currTriangle[1].x, currTriangle[1].y, currTriangle[1].z),
+                                            vec3(currTriangle[2].x, currTriangle[2].y, currTriangle[2].z), red, 0));
+            currTriangle.clear();
             currVertexNumber = 0;
         }
         // vertex.normal = packNormal(
@@ -246,7 +241,7 @@ void processNode(const tinygltf::Model& model,
     }
 }
 /*
-void loadCameras(const tinygltf::Model& model, nevk::Scene& scene)
+void loadCameras(const tinygltf::Model& model)
 {
     for (uint32_t i = 0; i < model.cameras.size(); ++i)
     {
@@ -274,7 +269,7 @@ void loadCameras(const tinygltf::Model& model, nevk::Scene& scene)
     }
 }
 */
-// todo fix idk
+
 bool ModelLoader::loadModelGltf(const std::string& modelPath, hittable_list& world)
 {
     if (modelPath.empty())

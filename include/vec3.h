@@ -127,7 +127,7 @@ using point3 = vec3; // 3D point
 using color = vec3; // RGB color
 
 // vec3 Utility Functions
-#include "vec3.h"
+//#include "vec3.h"
 
 inline std::ostream& operator<<(std::ostream& out, const vec3& v)
 {

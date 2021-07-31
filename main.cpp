@@ -1,9 +1,8 @@
 #include "bvh.h"
 #include "camera.h"
-#include "hittablelist.h"
 #include "material.h"
-#include "rtweekend.h"
 #include "modelloader/modelloader.h"
+
 #include <iostream>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -14,28 +13,29 @@ const std::string PATH = "misc/Cube";
 hittable_list triangles()
 {
     ModelLoader* modelLoader;
-    hittable_list world;
+    hittable_list* world;
 
-    modelLoader->loadModelGltf(PATH, world);
+    // todo fix idk compiles err
+    modelLoader->loadModelGltf(PATH, *world);
 
     auto red = make_shared<lambertian>(color(.65, .05, .05));
     auto white = make_shared<lambertian>(color(.73, .73, .73));
     auto green = make_shared<lambertian>(color(.12, .45, .15));
 
     auto checker = make_shared<checker_texture>(color(0.2, 0.3, 0.1), color(0.9, 0.9, 0.9));
-    //vec3 p1(0.0, 0.0, 0.0), p2(0.0, 0.0, -1.0), p3(0.0, 1.0, 0.0), p4(0.0, 1.0, -1.0), p5(1.0, 0.0, 0.0),
-   //     p6(1.0, 0.0, -1.0), p7(1.0, 1.0, 0.0), p8(1.0, 1.0, -1.0);
+    // vec3 p1(0.0, 0.0, 0.0), p2(0.0, 0.0, -1.0), p3(0.0, 1.0, 0.0), p4(0.0, 1.0, -1.0), p5(1.0, 0.0, 0.0),
+    //     p6(1.0, 0.0, -1.0), p7(1.0, 1.0, 0.0), p8(1.0, 1.0, -1.0);
 
     // very random scene, hundred apologises for the awful view
-/*
-    world.add(make_shared<triangle>(vec3(0, 0, 0.5), vec3(-1, 1, 0), vec3(-1, -1, 0), red, 0));
+    /*
+        world.add(make_shared<triangle>(vec3(0, 0, 0.5), vec3(-1, 1, 0), vec3(-1, -1, 0), red, 0));
 
-    world.add(make_shared<triangle>(p1, p4, p2, red, 1));
+        world.add(make_shared<triangle>(p1, p4, p2, red, 1));
 
-    world.add(make_shared<triangle>(vec3(-1.27, 0.19, 1), vec3(-0.43, -0.43, 0.28), vec3(-1, -0.34, 0), white, 2));
-    world.add(make_shared<triangle>(p3, p7, p8, white, 3));
-    world.add(make_shared<triangle>(p1, p5, p6, white, 4));
-*/
+        world.add(make_shared<triangle>(vec3(-1.27, 0.19, 1), vec3(-0.43, -0.43, 0.28), vec3(-1, -0.34, 0), white, 2));
+        world.add(make_shared<triangle>(p3, p7, p8, white, 3));
+        world.add(make_shared<triangle>(p1, p5, p6, white, 4));
+    */
     /* world.add(make_shared<triangle>(vec3(-1.27, 0.19, 1), vec3(-0.43, -0.43, 0.28), vec3(-1, -0.34, 0), white, 5));
     world.add(make_shared<triangle>(p3, p7, p8, white, 6));
     world.add(make_shared<triangle>(p1, p5, p6, white, 7));
@@ -45,7 +45,7 @@ hittable_list triangles()
     world.add(make_shared<triangle>(p1, p5, p6, white, 10)); */
 
     hittable_list objects;
-    objects.add(make_shared<bvh_node>(world, 0, 1, 0));
+    objects.add(make_shared<bvh_node>(*world, 0, 1, 0));
 
     /* for (int i = 0; i < bvh.size(); ++i)
       std::cout << i << ":" << std::endl

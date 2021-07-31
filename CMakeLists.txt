@@ -17,15 +17,15 @@ set (SOURCES
 source_group ("Header Files" FILES ${HEADERS})
 source_group ("Source Files" FILES ${SOURCES})
 
-set(MODELLIB_SOURCES
-        modelloader/modelloader.h
-        modelloader/modelloader.cpp)
-set(MODELLIB_NAME modelloader)
-add_library(${MODELLIB_NAME} OBJECT ${MODELLIB_SOURCES})
-target_include_directories(${MODELLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
-target_include_directories(${MODELLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/modelloader)
-target_include_directories(${MODELLIB_NAME} PUBLIC external/tinygltf/tinygltf external/glm/glm)
+#set(MODELLIB_SOURCES
+   #     modelloader/modelloader.h
+   #     modelloader/modelloader.cpp)
+#set(MODELLIB_NAME modelloader)
+#add_library(${MODELLIB_NAME} OBJECT ${MODELLIB_SOURCES})
+#target_include_directories(${MODELLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
+#target_include_directories(${MODELLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/modelloader)
+#target_include_directories(${MODELLIB_NAME} PUBLIC external/tinygltf/tinygltf external/glm/glm)
 
 
-add_executable(rayzzz ${HEADERS} ${SOURCES} ${MODELLIB_NAME})
-target_include_directories(rayzzz PUBLIC external/stb/ external/tinygltf/tinygltf include/)
+add_executable(rayzzz ${HEADERS} ${SOURCES})
+target_include_directories(rayzzz PUBLIC external/stb/ external/tinygltf/tinygltf include/ external/glm/glm ${PROJECT_SOURCE_DIR})

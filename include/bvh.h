@@ -28,7 +28,9 @@ public:
     bvh_node(const hittable_list& list, double time0, double time1, int index)
         : bvh_node(list.objects, 0, list.objects.size(), time0, time1, index)
     {
-        bvh.resize(2 * getNextPow2(list.objects.size() - 1));
+        const uint32_t leafCount = getNextPow2(list.objects.size());
+        const uint32_t nodesCount = 2 * leafCount - 1; // full bin tree
+        bvh.resize(nodesCount);
         assert(!bvh.empty());
         reconstruct(0);
 
@@ -311,7 +313,7 @@ bvh_node::bvh_node(
     const std::vector<shared_ptr<hittable>>& src_objects, size_t start, size_t end, double time0, double time1, int index)
 {
     assert(!src_objects.empty());
-    auto objects = src_objects; // Create a modifiable array of the source scene objects
+    std::vector<shared_ptr<hittable>> objects = src_objects; // Create a modifiable array of the source scene objects
     int axis = random_int(0, 2);
     auto comparator = (axis == 0) ? box_x_compare : (axis == 1) ? box_y_compare : box_z_compare;
 

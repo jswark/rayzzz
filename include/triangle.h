@@ -59,7 +59,6 @@ public:
 
 bool triangle::hit(const ray& r, double t_min, double t_max, hit_record& rec) const
 {
-
     vec3 normal = cross(v1 - v0, v2 - v0);
 
     float t = 0.f, u = 0.f, v = 0.f;

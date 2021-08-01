@@ -144,9 +144,10 @@ void bvh_node::setDepthFirstVisitOrder(int nodeId, int nextId, int& savedRight)
         bvh[nodeId].m_nodeOffset = nextId;
     }
 
-    if (rightIndex < bvh.size() && !bvh[leftIndex].isLeaf && !bvh[rightIndex].isLeaf)
+    if (nodeId < bvh.size() && !bvh[nodeId].isLeaf && savedRight != -1)
     {
-        savedRight = rightIndex; // save right index for offset
+        bvh[savedRight].m_nodeOffset = nodeId;
+        savedRight = -1;
     }
 
     if (leftIndex < bvh.size() && !bvh[leftIndex].isLeaf) // not leaf, check left
@@ -161,7 +162,7 @@ void bvh_node::setDepthFirstVisitOrder(int nodeId, int nextId, int& savedRight)
 
     if (rightIndex < bvh.size() && bvh[rightIndex].isLeaf) // save offset for right leaf
     {
-        bvh[rightIndex].m_nodeOffset = savedRight;
+        savedRight = rightIndex; // index need next offset
     }
 }
 
@@ -205,12 +206,11 @@ bool intersectBox(const ray& r, vec3 pmin, vec3 pmax)
 
 bool intersectRayTri(const ray& r, vec3 v0, vec3 v1, vec3 v2, hit_record& rec)
 {
+    vec3 normal = cross(v1 - v0, v2 - v0);
     float t = 0.f, u = 0.f, v = 0.f;
 
     vec3 v0v1 = v1 - v0;
     vec3 v0v2 = v2 - v0;
-
-    vec3 normal = cross(v1 - v0, v2 - v0);
 
     vec3 pvec = cross(r.direction(), v0v2);
 

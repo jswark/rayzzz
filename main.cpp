@@ -16,12 +16,12 @@ hittable_list triangles()
     hittable_list objects;
     objects.add(make_shared<bvh_node>(world, 0, 1, 0));
 
-    /* for (int i = 0; i < bvh.size(); ++i)
+     /*for (int i = 0; i < bvh.size(); ++i)
       std::cout << i << ":" << std::endl
                 << bvh[i].m_minBounds << std::endl
                 << bvh[i].m_instanceIndex << std::endl
                 << bvh[i].m_maxBounds << std::endl
-                << bvh[i].m_nodeOffset << std::endl; */
+                << bvh[i].m_nodeOffset << std::endl;*/
 
     return objects;
 }
@@ -36,7 +36,7 @@ color ray_color(const ray& r, const hittable& world, int depth)
 
     //(world.hit(r, 0.001, infinity, rec))
     //hitAny(r, rec)
-    if (world.hit(r, 0.001, infinity, rec))
+    if (hitAny(r, rec))
     {
         ray scattered;
         color attenuation;
@@ -54,7 +54,7 @@ int main()
     // Image
     auto aspect_ratio = 16.0 / 9.0;
     int image_width = 400;
-    int samples_per_pixel = 400;
+    int samples_per_pixel = 1;
     const int max_depth = 50;
 
     hittable_list world;

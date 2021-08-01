@@ -57,11 +57,11 @@ void processPrimitive(const tinygltf::Model& model,
                                             vec3(currTriangle[1].x, currTriangle[1].y, currTriangle[1].z),
                                             vec3(currTriangle[2].x, currTriangle[2].y, currTriangle[2].z), red, 0));
 
-            std::cout
+           /* std::cout
                 << "(" << currTriangle[0].x << "," << currTriangle[0].y << "," << currTriangle[0].z << ")" << std::endl
                 << "(" << currTriangle[1].x << "," << currTriangle[1].y << "," << currTriangle[1].z << ")" << std::endl
                 << "(" << currTriangle[2].x << "," << currTriangle[2].y << "," << currTriangle[2].z << ")" << std::endl
-                << std::endl;
+                << std::endl; */
 
             currTriangle.clear();
             currVertexNumber = 0;

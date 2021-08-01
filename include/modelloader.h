@@ -44,28 +44,73 @@ void processPrimitive(const tinygltf::Model& model,
 
     uint32_t currVertexNumber = 0;
     auto red = make_shared<lambertian>(color(.65, .05, .05));
-    std::vector<glm::vec3> currTriangle;
+    std::vector<glm::vec3> vertices;
+    vertices.reserve(vertexCount);
     for (uint32_t v = 0; v < vertexCount; ++v)
     {
-        ++currVertexNumber;
-        glm::vec3 pos = glm::make_vec3(&positionData[v * posStride]) * globalScale;
-        currTriangle.push_back(pos);
+        vertices.push_back(glm::make_vec3(&positionData[v * posStride]) * globalScale);
+    }
+    uint32_t indexCount = 0;
+    std::vector<uint32_t> indices;
+    const bool hasIndices = (primitive.indices != -1);
+    assert(hasIndices); // currently support only this mode
+    if (hasIndices)
+    {
+        const tinygltf::Accessor& accessor = model.accessors[primitive.indices > -1 ? primitive.indices : 0];
+        const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
+        const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
 
-        if (currVertexNumber == 3)
+        indexCount = static_cast<uint32_t>(accessor.count);
+        assert(indexCount != 0 && (indexCount % 3 == 0));
+        const void* dataPtr = &(buffer.data[accessor.byteOffset + bufferView.byteOffset]);
+
+        indices.reserve(indexCount);
+
+        switch (accessor.componentType)
         {
-            world.add(make_shared<triangle>(vec3(currTriangle[0].x, currTriangle[0].y, currTriangle[0].z),
-                                            vec3(currTriangle[1].x, currTriangle[1].y, currTriangle[1].z),
-                                            vec3(currTriangle[2].x, currTriangle[2].y, currTriangle[2].z), red, 0));
-
-           /* std::cout
-                << "(" << currTriangle[0].x << "," << currTriangle[0].y << "," << currTriangle[0].z << ")" << std::endl
-                << "(" << currTriangle[1].x << "," << currTriangle[1].y << "," << currTriangle[1].z << ")" << std::endl
-                << "(" << currTriangle[2].x << "," << currTriangle[2].y << "," << currTriangle[2].z << ")" << std::endl
-                << std::endl; */
-
-            currTriangle.clear();
-            currVertexNumber = 0;
+        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
+            const uint32_t* buf = static_cast<const uint32_t*>(dataPtr);
+            for (size_t index = 0; index < indexCount; index++)
+            {
+                indices.push_back(buf[index]);
+            }
+            break;
         }
+        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
+            const uint16_t* buf = static_cast<const uint16_t*>(dataPtr);
+            for (size_t index = 0; index < indexCount; index++)
+            {
+                indices.push_back(buf[index]);
+            }
+            break;
+        }
+        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
+            const uint8_t* buf = static_cast<const uint8_t*>(dataPtr);
+            for (size_t index = 0; index < indexCount; index++)
+            {
+                indices.push_back(buf[index]);
+            }
+            break;
+        }
+        default:
+            std::cerr << "Index component type " << accessor.componentType << " not supported!" << std::endl;
+            return;
+        }
+    }
+    for (uint32_t i = 0; i < indices.size(); i += 3)
+    {
+        uint32_t i0 = indices[i + 0];
+        uint32_t i1 = indices[i + 1];
+        uint32_t i2 = indices[i + 2];
+        glm::vec3 v0 = vertices[i0];
+        glm::vec3 v1 = vertices[i1];
+        glm::vec3 v2 = vertices[i2];
+
+        point3 p0 = { v0.x, v0.y, v0.z };
+        point3 p1 = { v1.x, v1.y, v1.z };
+        point3 p2 = { v2.x, v2.y, v2.z };
+
+        world.add(make_shared<triangle>(p0, p1, p2, red, 0));
     }
 }
 

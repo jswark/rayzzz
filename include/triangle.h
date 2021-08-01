@@ -33,7 +33,10 @@ public:
         float maxY = max(v0.y(), max(v1.y(), v2.y()));
         float maxZ = max(v0.z(), max(v1.z(), v2.z()));
 
-        output_box = aabb(point3(minX, minY, minZ), point3(maxX, maxY, maxZ));
+        const float eps = 1e-7f;
+        // need to pad aabb to prevent from ultra thin box (zero width)
+        output_box = aabb(point3(minX, minY, minZ), point3(maxX + eps, maxY + eps, maxZ + eps));
+        
         return true;
     }
 

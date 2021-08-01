@@ -12,26 +12,6 @@ hittable_list triangles()
     auto green = make_shared<lambertian>(color(.12, .45, .15));
 
     auto checker = make_shared<checker_texture>(color(0.2, 0.3, 0.1), color(0.9, 0.9, 0.9));
-    // vec3 p1(0.0, 0.0, 0.0), p2(0.0, 0.0, -1.0), p3(0.0, 1.0, 0.0), p4(0.0, 1.0, -1.0), p5(1.0, 0.0, 0.0),
-    //     p6(1.0, 0.0, -1.0), p7(1.0, 1.0, 0.0), p8(1.0, 1.0, -1.0);
-
-    // very random scene, hundred apologises for the awful view
-    /*
-        world.add(make_shared<triangle>(vec3(0, 0, 0.5), vec3(-1, 1, 0), vec3(-1, -1, 0), red, 0));
-
-        world.add(make_shared<triangle>(p1, p4, p2, red, 1));
-
-        world.add(make_shared<triangle>(vec3(-1.27, 0.19, 1), vec3(-0.43, -0.43, 0.28), vec3(-1, -0.34, 0), white, 2));
-        world.add(make_shared<triangle>(p3, p7, p8, white, 3));
-        world.add(make_shared<triangle>(p1, p5, p6, white, 4));
-    */
-    /* world.add(make_shared<triangle>(vec3(-1.27, 0.19, 1), vec3(-0.43, -0.43, 0.28), vec3(-1, -0.34, 0), white, 5));
-    world.add(make_shared<triangle>(p3, p7, p8, white, 6));
-    world.add(make_shared<triangle>(p1, p5, p6, white, 7));
-
-    world.add(make_shared<triangle>(vec3(-1.27, 0.19, 1), vec3(-0.43, -0.43, 0.28), vec3(-1, -0.34, 0), white, 8));
-    world.add(make_shared<triangle>(p3, p7, p8, white, 9));
-    world.add(make_shared<triangle>(p1, p5, p6, white, 10)); */
 
     hittable_list objects;
     objects.add(make_shared<bvh_node>(world, 0, 1, 0));
@@ -84,7 +64,7 @@ int main()
     auto aperture = 0.0;
 
     world = triangles();
-    lookfrom = point3(-4.168, 3.438, 5.544);
+    lookfrom = point3(-3.168, 2.438, 5.544);
     lookat = point3(12.927, -8.352, -18.141);
     vfov = 20.0;
 

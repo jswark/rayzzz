@@ -11,6 +11,8 @@
 
 #define TINYGLTF_IMPLEMENTATION
 
+#include "triangle.h"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -18,7 +20,6 @@
 #include <glm/gtx/compatibility.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
 
-#include "triangle.h"
 #include <tiny_gltf.h>
 
 void processPrimitive(const tinygltf::Model& model,
@@ -41,41 +42,6 @@ void processPrimitive(const tinygltf::Model& model,
     assert(byteStride > 0); // -1 means invalid glTF
     int posStride = byteStride / sizeof(float);
 
-    // Normals
-    const float* normalsData = nullptr;
-    int normalStride = 0;
-    if (primitive.attributes.find("NORMAL") != primitive.attributes.end())
-    {
-        const tinygltf::Accessor& normalAccessor = model.accessors[primitive.attributes.find("NORMAL")->second];
-        const tinygltf::BufferView& normView = model.bufferViews[normalAccessor.bufferView];
-        normalsData = reinterpret_cast<const float*>(
-            &(model.buffers[normView.buffer].data[normalAccessor.byteOffset + normView.byteOffset]));
-        assert(normalsData != nullptr);
-        normalStride = normalAccessor.ByteStride(normView) / sizeof(float);
-        assert(normalStride > 0);
-    }
-
-    // UVs
-    const float* texCoord0Data = nullptr;
-    int texCoord0Stride = 0;
-    if (primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end())
-    {
-        const tinygltf::Accessor& uvAccessor = model.accessors[primitive.attributes.find("TEXCOORD_0")->second];
-        const tinygltf::BufferView& uvView = model.bufferViews[uvAccessor.bufferView];
-        texCoord0Data = reinterpret_cast<const float*>(
-            &(model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
-        texCoord0Stride = uvAccessor.ByteStride(uvView) / sizeof(float);
-    }
-
-    int matId = primitive.material;
-    if (matId == -1)
-    {
-        matId = 0; // TODO: should be index of default material
-    }
-
-    glm::float3 sum = glm::float3(0.0f, 0.0f, 0.0f);
-    // std::vector<nevk::Scene::Vertex> vertices;
-    // vertices.reserve(vertexCount);
     uint32_t currVertexNumber = 0;
     auto red = make_shared<lambertian>(color(.65, .05, .05));
     std::vector<glm::vec3> currTriangle;
@@ -90,70 +56,17 @@ void processPrimitive(const tinygltf::Model& model,
             world.add(make_shared<triangle>(vec3(currTriangle[0].x, currTriangle[0].y, currTriangle[0].z),
                                             vec3(currTriangle[1].x, currTriangle[1].y, currTriangle[1].z),
                                             vec3(currTriangle[2].x, currTriangle[2].y, currTriangle[2].z), red, 0));
+
+            std::cout
+                << "(" << currTriangle[0].x << "," << currTriangle[0].y << "," << currTriangle[0].z << ")" << std::endl
+                << "(" << currTriangle[1].x << "," << currTriangle[1].y << "," << currTriangle[1].z << ")" << std::endl
+                << "(" << currTriangle[2].x << "," << currTriangle[2].y << "," << currTriangle[2].z << ")" << std::endl
+                << std::endl;
+
             currTriangle.clear();
             currVertexNumber = 0;
         }
-        // vertex.normal = packNormal(
-        //     glm::normalize(glm::vec3(normalsData ? glm::make_vec3(&normalsData[v * normalStride]) :
-        //     glm::vec3(0.0f))));
-        // vertex.uv = packUV(texCoord0Data ? glm::make_vec2(&texCoord0Data[v * texCoord0Stride]) : glm::vec3(0.0f));
-        // vertices.push_back(vertex);
-        // sum += vertex.pos;
     }
-    const glm::float3 massCenter = sum / (float)vertexCount;
-
-    uint32_t indexCount = 0;
-    std::vector<uint32_t> indices;
-    const bool hasIndices = (primitive.indices != -1);
-    assert(hasIndices); // currently support only this mode
-    if (hasIndices)
-    {
-        const tinygltf::Accessor& accessor = model.accessors[primitive.indices > -1 ? primitive.indices : 0];
-        const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
-        const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
-
-        indexCount = static_cast<uint32_t>(accessor.count);
-        assert(indexCount != 0 && (indexCount % 3 == 0));
-        const void* dataPtr = &(buffer.data[accessor.byteOffset + bufferView.byteOffset]);
-
-        indices.reserve(indexCount);
-
-        switch (accessor.componentType)
-        {
-        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
-            const uint32_t* buf = static_cast<const uint32_t*>(dataPtr);
-            for (size_t index = 0; index < indexCount; index++)
-            {
-                indices.push_back(buf[index]);
-            }
-            break;
-        }
-        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
-            const uint16_t* buf = static_cast<const uint16_t*>(dataPtr);
-            for (size_t index = 0; index < indexCount; index++)
-            {
-                indices.push_back(buf[index]);
-            }
-            break;
-        }
-        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
-            const uint8_t* buf = static_cast<const uint8_t*>(dataPtr);
-            for (size_t index = 0; index < indexCount; index++)
-            {
-                indices.push_back(buf[index]);
-            }
-            break;
-        }
-        default:
-            std::cerr << "Index component type " << accessor.componentType << " not supported!" << std::endl;
-            return;
-        }
-    }
-
-    // uint32_t meshId = scene.createMesh(vertices, indices);
-    // assert(meshId != -1);
-    // uint32_t instId = scene.createInstance(meshId, matId, transform, massCenter);
-    // assert(instId != -1);
 }
 
 void processMesh(const tinygltf::Model& model,
@@ -248,35 +161,6 @@ void processNode(const tinygltf::Model& model,
         processNode(model, model.nodes[node.children[i]], globalTransform, globalScale, world);
     }
 }
-/*
-void loadCameras(const tinygltf::Model& model)
-{
-    for (uint32_t i = 0; i < model.cameras.size(); ++i)
-    {
-        const tinygltf::Camera& cameraGltf = model.cameras[i];
-        if (strcmp(cameraGltf.type.c_str(), "perspective") == 0)
-        {
-            nevk::Camera camera;
-            camera.fov = cameraGltf.perspective.yfov * (180.0f / 3.1415926f);
-            camera.znear = cameraGltf.perspective.znear;
-            camera.zfar = cameraGltf.perspective.zfar;
-            camera.name = cameraGltf.name;
-            scene.addCamera(camera);
-        }
-        else
-        {
-            // not supported
-        }
-    }
-    if (scene.getCameraCount() == 0)
-    {
-        // add default camera
-        Camera camera;
-        camera.updateViewMatrix();
-        scene.addCamera(camera);
-    }
-}
-*/
 
 bool loadModelGltf(const std::string& modelPath, hittable_list& world)
 {
@@ -302,8 +186,6 @@ bool loadModelGltf(const std::string& modelPath, hittable_list& world)
     }
 
     int sceneId = model.defaultScene;
-
-    // loadCameras(model);
 
     const float globalScale = 1.0f;
 

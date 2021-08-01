@@ -6,6 +6,7 @@
 #include "rtweekend.h"
 
 #include <algorithm>
+#include <assert.h>
 #include <utility>
 #include <vector>
 
@@ -69,7 +70,7 @@ public:
 
     void setDepthFirstVisitOrder(int nodeId, int nextId, int& savedRight);
 
-    unsigned int getNextPow2(unsigned int n)  // compute the next highest power of 2 of 32-bit v
+    unsigned int getNextPow2(unsigned int n) // compute the next highest power of 2 of 32-bit v
     {
         n--;
         n |= n >> 1;

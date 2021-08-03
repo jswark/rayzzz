@@ -26,7 +26,7 @@ class bvh_node : public hittable
 {
 public:
     bvh_node(const hittable_list& list, double time0, double time1, int index)
-        : bvh_node(list.objects, 0, list.objects.size(), time0, time1, index)
+        : bvh_node(list.objects, 0, list.objects.size(), time0, time1)
     {
         const uint32_t leafCount = getNextPow2(list.objects.size());
         const uint32_t nodesCount = 2 * leafCount - 1; // full bin tree
@@ -36,7 +36,6 @@ public:
 
         int rightSib = 1;
         setDepthFirstVisitOrder(0, -1, rightSib);
-
         // set last offset
         for (int i = bvh.size() - 1; i > 0; --i)
         {
@@ -48,12 +47,7 @@ public:
         }
     };
 
-    bvh_node(const std::vector<shared_ptr<hittable>>& src_objects,
-             size_t start,
-             size_t end,
-             double time0,
-             double time1,
-             int index);
+    bvh_node(const std::vector<shared_ptr<hittable>>& src_objects, size_t start, size_t end, double time0, double time1);
 
     virtual bool hit(const ray& r, double t_min, double t_max, hit_record& rec) const override;
 
@@ -99,6 +93,7 @@ void bvh_node::reconstruct(int index) const
 {
     int leftIndex = 2 * index + 1;
     int rightIndex = 2 * index + 2;
+
 
     if (index == 0) // root
     {
@@ -266,11 +261,6 @@ bool hitAny(const ray& r, hit_record& rec)
             continue;
         }
 
-        if (node.m_nodeOffset * 2 + 2 == nodeIndex)
-        { // very right last node
-            nodeIndex = -1;
-            continue;
-        }
         int indexLeft = 2 * nodeIndex + 1;
         if (node.isLeaf && node.m_nodeOffset != -1)
             nodeIndex = node.m_nodeOffset;
@@ -309,8 +299,7 @@ bool box_z_compare(const shared_ptr<hittable> a, const shared_ptr<hittable> b)
     return box_compare(a, b, 2);
 }
 
-bvh_node::bvh_node(
-    const std::vector<shared_ptr<hittable>>& src_objects, size_t start, size_t end, double time0, double time1, int index)
+bvh_node::bvh_node(const std::vector<shared_ptr<hittable>>& src_objects, size_t start, size_t end, double time0, double time1)
 {
     assert(!src_objects.empty());
     std::vector<shared_ptr<hittable>> objects = src_objects; // Create a modifiable array of the source scene objects
@@ -357,8 +346,8 @@ bvh_node::bvh_node(
         std::sort(objects.begin() + start, objects.begin() + end, comparator);
         auto mid = start + object_span / 2;
 
-        left = make_shared<bvh_node>(objects, start, mid, time0, time1, index + 1);
-        right = make_shared<bvh_node>(objects, mid, end, time0, time1, index + 2);
+        left = make_shared<bvh_node>(objects, start, mid, time0, time1);
+        right = make_shared<bvh_node>(objects, mid, end, time0, time1);
     }
 
     aabb box_left, box_right;

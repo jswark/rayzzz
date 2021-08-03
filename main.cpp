@@ -1,11 +1,11 @@
 #include "modelloader.h"
 
-const std::string PATH = "misc/cube/Cube.gltf";
+const std::string PATH = "misc/cornell_box/cornell_box.gltf"; //"misc/cornell_box/cornell_box.gltf";
 
 hittable_list triangles()
 {
     hittable_list world;
-   loadModelGltf(PATH, world);
+    loadModelGltf(PATH, world);
 
     auto red = make_shared<lambertian>(color(.65, .05, .05));
     auto white = make_shared<lambertian>(color(.73, .73, .73));
@@ -16,12 +16,12 @@ hittable_list triangles()
     hittable_list objects;
     objects.add(make_shared<bvh_node>(world, 0, 1, 0));
 
-     /*for (int i = 0; i < bvh.size(); ++i)
-      std::cout << i << ":" << std::endl
-                << bvh[i].m_minBounds << std::endl
-                << bvh[i].m_instanceIndex << std::endl
-                << bvh[i].m_maxBounds << std::endl
-                << bvh[i].m_nodeOffset << std::endl;*/
+    /* for (int i = 0; i < bvh.size(); ++i)
+        std::cout << i << ":" << std::endl
+                  << bvh[i].m_minBounds << std::endl
+                  << bvh[i].m_instanceIndex << std::endl
+                  << bvh[i].m_maxBounds << std::endl
+                  << bvh[i].m_nodeOffset << std::endl; */
 
     return objects;
 }
@@ -35,8 +35,8 @@ color ray_color(const ray& r, const hittable& world, int depth)
         return color(0, 0, 0);
 
     //(world.hit(r, 0.001, infinity, rec))
-    //hitAny(r, rec)
-    if (hitAny(r, rec))
+    // (hitAny(r, rec))
+    if (world.hit(r, 0.001, infinity, rec))
     {
         ray scattered;
         color attenuation;
@@ -54,8 +54,8 @@ int main()
     // Image
     auto aspect_ratio = 16.0 / 9.0;
     int image_width = 400;
-    int samples_per_pixel = 1;
-    const int max_depth = 50;
+    int samples_per_pixel = 10;
+    const int max_depth = 100;
 
     hittable_list world;
 
@@ -65,9 +65,9 @@ int main()
     auto aperture = 0.0;
 
     world = triangles();
-    lookfrom = point3(-3.168, 2.438, 5.544);
-    lookat = point3(12.927, -8.352, -18.141);
-    vfov = 20.0;
+    lookfrom = point3(0.0, 3.0, 4.0);
+    lookat = point3(0.0, 0.0, 0.0);
+    vfov = 50.0;
 
     // Camera
     vec3 vup(0, 1, 0);

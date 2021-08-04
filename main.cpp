@@ -2,6 +2,8 @@
 
 const std::string PATH = "misc/cornell_box/cornell_box.gltf"; //"misc/cornell_box/cornell_box.gltf";
 
+std::vector<bvh_node::BVHNode> bvh_node::bvh;
+
 hittable_list triangles()
 {
     hittable_list world;
@@ -14,7 +16,7 @@ hittable_list triangles()
     auto checker = make_shared<checker_texture>(color(0.2, 0.3, 0.1), color(0.9, 0.9, 0.9));
 
     hittable_list objects;
-    objects.add(make_shared<bvh_node>(world, 0, 1, 0));
+    objects.add(make_shared<bvh_node>(world, 0, 1));
 
     /* for (int i = 0; i < bvh.size(); ++i)
         std::cout << i << ":" << std::endl
@@ -35,7 +37,7 @@ color ray_color(const ray& r, const hittable& world, int depth)
         return color(0, 0, 0);
 
     //(world.hit(r, 0.001, infinity, rec))
-    // (hitAny(r, rec))
+    // (bvh_node::hitAny(r, rec))
     if (world.hit(r, 0.001, infinity, rec))
     {
         ray scattered;

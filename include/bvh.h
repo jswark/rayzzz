@@ -10,37 +10,25 @@
 #include <utility>
 #include <vector>
 
-struct BVHNode
-{
-    vec3 m_minBounds{};
-    int m_instanceIndex = -1;
-    vec3 m_maxBounds{};
-    std::vector<point3> coord{}; // todo add to aabbs
-    int m_nodeOffset = -1;
-    bool isLeaf = false;
-};
-
-std::vector<BVHNode> bvh(0);
-
 class bvh_node : public hittable
 {
 public:
-    bvh_node(const hittable_list& list, double time0, double time1, int index)
+    bvh_node(const hittable_list& list, double time0, double time1)
         : bvh_node(list.objects, 0, list.objects.size(), time0, time1)
     {
         const uint32_t leafCount = getNextPow2(list.objects.size());
         const uint32_t nodesCount = 2 * leafCount; // full bin tree
-        bvh.resize(nodesCount);
+        bvh_node::bvh.resize(nodesCount);
         reconstruct(0);
 
         int rightSib = 1;
         setDepthFirstVisitOrder(0, -1, rightSib);
         // set last offset
-        for (int i = bvh.size() - 1; i > 0; --i)
+        for (int i = bvh_node::bvh.size() - 1; i > 0; --i)
         {
-            if (bvh[i].m_instanceIndex != -1)
+            if (bvh_node::bvh[i].m_instanceIndex != -1)
             {
-                bvh[i].m_nodeOffset = -1;
+                bvh_node::bvh[i].m_nodeOffset = -1;
                 break;
             }
         }
@@ -63,6 +51,8 @@ public:
 
     virtual void reconstruct(int index) override;
 
+    static bool hitAny(const ray& r, hit_record& rec);
+
     void setDepthFirstVisitOrder(int nodeId, int nextId, int& savedRight);
 
     unsigned int getNextPow2(unsigned int n) // compute the next highest power of 2 of 32-bit v
@@ -77,6 +67,18 @@ public:
 
         return n;
     }
+
+    struct BVHNode
+    {
+        vec3 m_minBounds{};
+        int m_instanceIndex = -1;
+        vec3 m_maxBounds{};
+        std::vector<point3> coord{}; // todo add to aabbs
+        int m_nodeOffset = -1;
+        bool isLeaf = false;
+    };
+
+    static std::vector<BVHNode> bvh;
 
     struct BVHTree
     {
@@ -98,33 +100,33 @@ void bvh_node::reconstruct(int index)
 
     if (index == 0) // root
     {
-        bvh[0].m_instanceIndex = initBVH.indexLeft;
-        bvh[0].m_maxBounds = initBVH.box.max();
-        bvh[0].m_minBounds = initBVH.box.min();
-        bvh[0].coord = initBVH.coordLeft;
+        bvh_node::bvh[0].m_instanceIndex = initBVH.indexLeft;
+        bvh_node::bvh[0].m_maxBounds = initBVH.box.max();
+        bvh_node::bvh[0].m_minBounds = initBVH.box.min();
+        bvh_node::bvh[0].coord = initBVH.coordLeft;
     }
 
     if (initBVH.indexLeft != -1)
     {
-        bvh[leftIndex].isLeaf = true;
+        bvh_node::bvh[leftIndex].isLeaf = true;
     }
-    bvh[leftIndex].m_instanceIndex = initBVH.indexLeft;
-    bvh[leftIndex].m_maxBounds = initBVH.box.max();
-    bvh[leftIndex].m_minBounds = initBVH.box.min();
-    bvh[leftIndex].coord = initBVH.coordLeft;
-    if (rightIndex < bvh.size())
+    bvh_node::bvh[leftIndex].m_instanceIndex = initBVH.indexLeft;
+    bvh_node::bvh[leftIndex].m_maxBounds = initBVH.box.max();
+    bvh_node::bvh[leftIndex].m_minBounds = initBVH.box.min();
+    bvh_node::bvh[leftIndex].coord = initBVH.coordLeft;
+    if (rightIndex < bvh_node::bvh.size())
     {
-        bvh[leftIndex].m_nodeOffset = rightIndex; // set right bro
+        bvh_node::bvh[leftIndex].m_nodeOffset = rightIndex; // set right bro
     }
 
     if (initBVH.indexRight != -1)
     {
-        bvh[rightIndex].isLeaf = true;
+        bvh_node::bvh[rightIndex].isLeaf = true;
     }
-    bvh[rightIndex].m_instanceIndex = initBVH.indexRight;
-    bvh[rightIndex].m_maxBounds = initBVH.box.max();
-    bvh[rightIndex].m_minBounds = initBVH.box.min();
-    bvh[rightIndex].coord = initBVH.coordRight;
+    bvh_node::bvh[rightIndex].m_instanceIndex = initBVH.indexRight;
+    bvh_node::bvh[rightIndex].m_maxBounds = initBVH.box.max();
+    bvh_node::bvh[rightIndex].m_minBounds = initBVH.box.min();
+    bvh_node::bvh[rightIndex].coord = initBVH.coordRight;
 
     initBVH.left->reconstruct(leftIndex);
     initBVH.right->reconstruct(rightIndex);
@@ -137,26 +139,26 @@ void bvh_node::setDepthFirstVisitOrder(int nodeId, int nextId, int& savedRight)
 
     if (nodeId != 0) // root
     {
-        bvh[nodeId].m_nodeOffset = nextId;
+        bvh_node::bvh[nodeId].m_nodeOffset = nextId;
     }
 
-    if (nodeId < bvh.size() && !bvh[nodeId].isLeaf && savedRight != -1)
+    if (nodeId < bvh_node::bvh.size() && !bvh_node::bvh[nodeId].isLeaf && savedRight != -1)
     {
-        bvh[savedRight].m_nodeOffset = nodeId;
+        bvh_node::bvh[savedRight].m_nodeOffset = nodeId;
         savedRight = -1;
     }
 
-    if (leftIndex < bvh.size() && !bvh[leftIndex].isLeaf) // not leaf, check left
+    if (leftIndex < bvh_node::bvh.size() && !bvh_node::bvh[leftIndex].isLeaf) // not leaf, check left
     {
         setDepthFirstVisitOrder(leftIndex, rightIndex, savedRight);
     }
 
-    if (rightIndex < bvh.size() && !bvh[rightIndex].isLeaf) // not leaf, check right
+    if (rightIndex < bvh_node::bvh.size() && !bvh_node::bvh[rightIndex].isLeaf) // not leaf, check right
     {
         setDepthFirstVisitOrder(rightIndex, nextId, savedRight);
     }
 
-    if (rightIndex < bvh.size() && bvh[rightIndex].isLeaf) // save offset for right leaf
+    if (rightIndex < bvh_node::bvh.size() && bvh_node::bvh[rightIndex].isLeaf) // save offset for right leaf
     {
         savedRight = rightIndex; // index need next offset
     }
@@ -242,13 +244,13 @@ bool intersectRayTri(const ray& r, vec3 v0, vec3 v1, vec3 v2, hit_record& rec)
     return true;
 }
 
-bool hitAny(const ray& r, hit_record& rec)
+bool bvh_node::hitAny(const ray& r, hit_record& rec)
 {
     int nodeIndex = 1;
 
     while (nodeIndex != -1)
     {
-        BVHNode& node = bvh[nodeIndex];
+        BVHNode& node = bvh_node::bvh[nodeIndex];
         if (node.isLeaf)
         { // leaf node
             if (intersectRayTri(r, node.coord[0], node.coord[1], node.coord[2], rec))
@@ -265,7 +267,7 @@ bool hitAny(const ray& r, hit_record& rec)
         int indexLeft = 2 * nodeIndex + 1;
         if (node.isLeaf && node.m_nodeOffset != -1)
             nodeIndex = node.m_nodeOffset;
-        else if (!node.isLeaf && indexLeft < bvh.size())
+        else if (!node.isLeaf && indexLeft < bvh_node::bvh.size())
             nodeIndex = indexLeft;
         else
             nodeIndex = node.m_nodeOffset;

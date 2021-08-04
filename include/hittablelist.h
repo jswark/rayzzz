@@ -39,7 +39,7 @@ public:
     {
         return {};
     };
-    virtual void reconstruct(int index) const override{};
+    virtual void reconstruct(int index) override{};
 
 public:
     std::vector<shared_ptr<hittable>> objects;

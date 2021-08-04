@@ -54,7 +54,7 @@ int main()
     // Image
     auto aspect_ratio = 16.0 / 9.0;
     int image_width = 400;
-    int samples_per_pixel = 10;
+    int samples_per_pixel = 1;
     const int max_depth = 100;
 
     hittable_list world;
@@ -65,9 +65,9 @@ int main()
     auto aperture = 0.0;
 
     world = triangles();
-    lookfrom = point3(0.0, 3.0, 4.0);
+    lookfrom = point3(0.0, 1.0, 3.5);
     lookat = point3(0.0, 0.0, 0.0);
-    vfov = 50.0;
+    vfov = 45.0;
 
     // Camera
     vec3 vup(0, 1, 0);

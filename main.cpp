@@ -70,10 +70,7 @@ int main()
     // scene
     hittable_list world;
     loadModelGltf(PATH, world);
-
-    hittable_list objects;
     BVHBuilder BVH = BVHBuilder(world, 0, 1);
-
     std::vector<BVHBuilder::BVHNode> bvh = BVH.getBVH();
 
     /* for (int i = 0; i < bvh.size(); ++i)

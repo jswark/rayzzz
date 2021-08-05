@@ -2,33 +2,41 @@
 
 const std::string PATH = "misc/cornell_box/cornell_box.gltf"; //"misc/cornell_box/cornell_box.gltf";
 
-std::vector<bvh_node::BVHNode> bvh_node::bvh;
+std::vector<BVHBuilder::BVHNode> BVHBuilder::bvh;
 
-hittable_list triangles()
+bool hitAny(const ray& r, hit_record& rec, std::vector<BVHBuilder::BVHNode> bvh)
 {
-    hittable_list world;
-    loadModelGltf(PATH, world);
+    int nodeIndex = 1;
 
-    auto red = make_shared<lambertian>(color(.65, .05, .05));
-    auto white = make_shared<lambertian>(color(.73, .73, .73));
-    auto green = make_shared<lambertian>(color(.12, .45, .15));
+    while (nodeIndex != -1)
+    {
+        BVHBuilder::BVHNode& node = bvh[nodeIndex];
+        if (node.isLeaf)
+        { // leaf node
+            if (intersectRayTri(r, node.coord[0], node.coord[1], node.coord[2], rec))
+            {
+                return true;
+            }
+        }
+        else if (!intersectBox(r, node.m_minBounds, node.m_maxBounds))
+        {
+            nodeIndex = node.m_nodeOffset;
+            continue;
+        }
 
-    auto checker = make_shared<checker_texture>(color(0.2, 0.3, 0.1), color(0.9, 0.9, 0.9));
+        int indexLeft = 2 * nodeIndex + 1;
+        if (node.isLeaf && node.m_nodeOffset != -1)
+            nodeIndex = node.m_nodeOffset;
+        else if (!node.isLeaf && indexLeft < bvh.size())
+            nodeIndex = indexLeft;
+        else
+            nodeIndex = node.m_nodeOffset;
+    }
 
-    hittable_list objects;
-    objects.add(make_shared<bvh_node>(world, 0, 1));
-
-    /* for (int i = 0; i < bvh.size(); ++i)
-        std::cout << i << ":" << std::endl
-                  << bvh[i].m_minBounds << std::endl
-                  << bvh[i].m_instanceIndex << std::endl
-                  << bvh[i].m_maxBounds << std::endl
-                  << bvh[i].m_nodeOffset << std::endl; */
-
-    return objects;
+    return false;
 }
 
-color ray_color(const ray& r, const hittable& world, int depth)
+color ray_color(const ray& r, const hittable& world, int depth, std::vector<BVHBuilder::BVHNode>& bvh)
 {
     hit_record rec;
 
@@ -38,12 +46,12 @@ color ray_color(const ray& r, const hittable& world, int depth)
 
     //(world.hit(r, 0.001, infinity, rec))
     // (bvh_node::hitAny(r, rec))
-    if (world.hit(r, 0.001, infinity, rec))
+    if (hitAny(r, rec, bvh))
     {
         ray scattered;
         color attenuation;
         if (rec.mat_ptr->scatter(r, rec, attenuation, scattered))
-            return attenuation * ray_color(scattered, world, depth - 1);
+            return attenuation * ray_color(scattered, world, depth - 1, bvh);
         return color(0, 0, 0);
     }
     vec3 unit_direction = unit_vector(r.direction());
@@ -59,14 +67,28 @@ int main()
     int samples_per_pixel = 1;
     const int max_depth = 100;
 
+    // scene
     hittable_list world;
+    loadModelGltf(PATH, world);
 
+    hittable_list objects;
+    BVHBuilder BVH = BVHBuilder(world, 0, 1);
+
+    std::vector<BVHBuilder::BVHNode> bvh = BVH.getBVH();
+
+    /* for (int i = 0; i < bvh.size(); ++i)
+        std::cout << i << ":" << std::endl
+                  << bvh[i].m_minBounds << std::endl
+                  << bvh[i].m_instanceIndex << std::endl
+                  << bvh[i].m_maxBounds << std::endl
+                  << bvh[i].m_nodeOffset << std::endl; */
+
+    // camera
     point3 lookfrom;
     point3 lookat;
     auto vfov = 40.0;
     auto aperture = 0.0;
 
-    world = triangles();
     lookfrom = point3(0.0, 1.0, 3.5);
     lookat = point3(0.0, 0.0, 0.0);
     vfov = 45.0;
@@ -94,7 +116,7 @@ int main()
                 auto u = (i + random_double()) / (image_width - 1);
                 auto v = (j + random_double()) / (image_height - 1);
                 ray r = cam.get_ray(u, v);
-                pixel_color += ray_color(r, world, max_depth);
+                pixel_color += ray_color(r, world, max_depth, bvh);
             }
 
             auto r = pixel_color.x();

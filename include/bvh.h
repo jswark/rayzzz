@@ -10,48 +10,49 @@
 #include <utility>
 #include <vector>
 
-class bvh_node : public hittable
+class BVHBuilder : hittable
 {
-public:
-    bvh_node(const hittable_list& list, double time0, double time1)
-        : bvh_node(list.objects, 0, list.objects.size(), time0, time1)
+private:
+    virtual bool bounding_box(double time0, double time1, aabb& output_box) const override
     {
-        const uint32_t leafCount = getNextPow2(list.objects.size());
-        const uint32_t nodesCount = 2 * leafCount; // full bin tree
-        bvh_node::bvh.resize(nodesCount);
-        reconstruct(0);
-
-        int rightSib = 1;
-        setDepthFirstVisitOrder(0, -1, rightSib);
-        // set last offset
-        for (int i = bvh_node::bvh.size() - 1; i > 0; --i)
-        {
-            if (bvh_node::bvh[i].m_instanceIndex != -1)
-            {
-                bvh_node::bvh[i].m_nodeOffset = -1;
-                break;
-            }
-        }
+        return 0;
     };
-
-    bvh_node(const std::vector<shared_ptr<hittable>>& src_objects, size_t start, size_t end, double time0, double time1);
-
-    virtual bool hit(const ray& r, double t_min, double t_max, hit_record& rec) const override;
-
-    virtual bool bounding_box(double time0, double time1, aabb& output_box) const override;
 
     virtual std::vector<point3> getCoord() const override
     {
         return {};
     };
+
     virtual int getIndex() const override
     {
         return 0;
     };
 
-    virtual void reconstruct(int index) override;
+    virtual void reconstruct(int index) override{};
+    virtual bool hit(const ray& r, double t_min, double t_max, hit_record& rec) const override
+    {
+        return 0;
+    };
 
-    static bool hitAny(const ray& r, hit_record& rec);
+    void recreate(const hittable_list& list)
+    {
+        const uint32_t leafCount = getNextPow2(list.objects.size());
+        const uint32_t nodesCount = 2 * leafCount; // full bin tree
+        BVHBuilder::bvh.resize(nodesCount);
+        inner.reconstruct(0);
+
+        int rightSib = 1;
+        setDepthFirstVisitOrder(0, -1, rightSib);
+        // set last offset
+        for (int i = BVHBuilder::bvh.size() - 1; i > 0; --i)
+        {
+            if (BVHBuilder::bvh[i].m_instanceIndex != -1)
+            {
+                BVHBuilder::bvh[i].m_nodeOffset = -1;
+                break;
+            }
+        }
+    };
 
     void setDepthFirstVisitOrder(int nodeId, int nextId, int& savedRight);
 
@@ -68,6 +69,45 @@ public:
         return n;
     }
 
+    class bvhNodeInternal : public hittable
+    {
+        shared_ptr<hittable> left;
+        shared_ptr<hittable> right;
+        aabb box;
+        int indexLeft = -1;
+        int indexRight = -1;
+        std::vector<point3> coordLeft{};
+        std::vector<point3> coordRight{};
+
+        // 1) create bvh
+        bvhNodeInternal(const hittable_list& list, double time0, double time1, BVHBuilder* outer)
+            : bvhNodeInternal(list.objects, 0, list.objects.size(), time0, time1)
+        {
+            outer = outer;
+        };
+
+        virtual bool bounding_box(double time0, double time1, aabb& output_box) const override;
+
+        virtual std::vector<point3> getCoord() const override
+        {
+            return {};
+        };
+        virtual int getIndex() const override
+        {
+            return 0;
+        };
+
+
+    public:
+        bvhNodeInternal(
+            const std::vector<shared_ptr<hittable>>& src_objects, size_t start, size_t end, double time0, double time1);
+        virtual void reconstruct(int index) override;
+        virtual bool hit(const ray& r, double t_min, double t_max, hit_record& rec) const override;
+    };
+
+    bvhNodeInternal inner;
+
+public:
     struct BVHNode
     {
         vec3 m_minBounds{};
@@ -78,107 +118,111 @@ public:
         bool isLeaf = false;
     };
 
-    static std::vector<BVHNode> bvh;
+    static std::vector<BVHNode> bvh; // can't live w/o static :((
 
-    struct BVHTree
+    // 2) get array of nodes ??
+    static std::vector<BVHNode> getBVH()
     {
-        shared_ptr<hittable> left;
-        shared_ptr<hittable> right;
-        aabb box;
-        int indexLeft = -1;
-        int indexRight = -1;
-        std::vector<point3> coordLeft{};
-        std::vector<point3> coordRight{};
-    } initBVH;
+        return BVHBuilder::bvh;
+    }
+
+    // create bvh
+    BVHBuilder(const hittable_list& list, double time0, double time1)
+        : inner(list.objects, 0, list.objects.size(), time0, time1)
+    {
+        recreate(list);
+    };
 };
 
-void bvh_node::reconstruct(int index)
+void BVHBuilder::bvhNodeInternal::reconstruct(int index)
 {
     int leftIndex = 2 * index + 1;
     int rightIndex = 2 * index + 2;
 
-
     if (index == 0) // root
     {
-        bvh_node::bvh[0].m_instanceIndex = initBVH.indexLeft;
-        bvh_node::bvh[0].m_maxBounds = initBVH.box.max();
-        bvh_node::bvh[0].m_minBounds = initBVH.box.min();
-        bvh_node::bvh[0].coord = initBVH.coordLeft;
+        BVHBuilder::bvh[0].m_instanceIndex = indexLeft;
+        BVHBuilder::bvh[0].m_maxBounds = box.max();
+        BVHBuilder::bvh[0].m_minBounds = box.min();
+        BVHBuilder::bvh[0].coord = coordLeft;
     }
 
-    if (initBVH.indexLeft != -1)
+    if (indexLeft != -1)
     {
-        bvh_node::bvh[leftIndex].isLeaf = true;
-    }
-    bvh_node::bvh[leftIndex].m_instanceIndex = initBVH.indexLeft;
-    bvh_node::bvh[leftIndex].m_maxBounds = initBVH.box.max();
-    bvh_node::bvh[leftIndex].m_minBounds = initBVH.box.min();
-    bvh_node::bvh[leftIndex].coord = initBVH.coordLeft;
-    if (rightIndex < bvh_node::bvh.size())
-    {
-        bvh_node::bvh[leftIndex].m_nodeOffset = rightIndex; // set right bro
+        BVHBuilder::bvh[leftIndex].isLeaf = true;
     }
 
-    if (initBVH.indexRight != -1)
-    {
-        bvh_node::bvh[rightIndex].isLeaf = true;
-    }
-    bvh_node::bvh[rightIndex].m_instanceIndex = initBVH.indexRight;
-    bvh_node::bvh[rightIndex].m_maxBounds = initBVH.box.max();
-    bvh_node::bvh[rightIndex].m_minBounds = initBVH.box.min();
-    bvh_node::bvh[rightIndex].coord = initBVH.coordRight;
+    BVHBuilder::bvh[leftIndex].m_instanceIndex = indexLeft;
+    BVHBuilder::bvh[leftIndex].m_maxBounds = box.max();
+    BVHBuilder::bvh[leftIndex].m_minBounds = box.min();
+    BVHBuilder::bvh[leftIndex].coord = coordLeft;
 
-    initBVH.left->reconstruct(leftIndex);
-    initBVH.right->reconstruct(rightIndex);
+    if (rightIndex < BVHBuilder::bvh.size())
+    {
+        BVHBuilder::bvh[leftIndex].m_nodeOffset = rightIndex; // set right bro
+    }
+
+    if (indexRight != -1)
+    {
+        BVHBuilder::bvh[rightIndex].isLeaf = true;
+    }
+
+    BVHBuilder::bvh[rightIndex].m_instanceIndex = indexRight;
+    BVHBuilder::bvh[rightIndex].m_maxBounds = box.max();
+    BVHBuilder::bvh[rightIndex].m_minBounds = box.min();
+    BVHBuilder::bvh[rightIndex].coord = coordRight;
+
+    left->reconstruct(leftIndex);
+    right->reconstruct(rightIndex);
 }
 
-void bvh_node::setDepthFirstVisitOrder(int nodeId, int nextId, int& savedRight)
+void BVHBuilder::setDepthFirstVisitOrder(int nodeId, int nextId, int& savedRight)
 {
     int leftIndex = 2 * nodeId + 1;
     int rightIndex = 2 * nodeId + 2;
 
     if (nodeId != 0) // root
     {
-        bvh_node::bvh[nodeId].m_nodeOffset = nextId;
+        BVHBuilder::bvh[nodeId].m_nodeOffset = nextId;
     }
 
-    if (nodeId < bvh_node::bvh.size() && !bvh_node::bvh[nodeId].isLeaf && savedRight != -1)
+    if (nodeId < BVHBuilder::bvh.size() && !BVHBuilder::bvh[nodeId].isLeaf && savedRight != -1)
     {
-        bvh_node::bvh[savedRight].m_nodeOffset = nodeId;
+        BVHBuilder::bvh[savedRight].m_nodeOffset = nodeId;
         savedRight = -1;
     }
 
-    if (leftIndex < bvh_node::bvh.size() && !bvh_node::bvh[leftIndex].isLeaf) // not leaf, check left
+    if (leftIndex < BVHBuilder::bvh.size() && !BVHBuilder::bvh[leftIndex].isLeaf) // not leaf, check left
     {
         setDepthFirstVisitOrder(leftIndex, rightIndex, savedRight);
     }
 
-    if (rightIndex < bvh_node::bvh.size() && !bvh_node::bvh[rightIndex].isLeaf) // not leaf, check right
+    if (rightIndex < BVHBuilder::bvh.size() && !BVHBuilder::bvh[rightIndex].isLeaf) // not leaf, check right
     {
         setDepthFirstVisitOrder(rightIndex, nextId, savedRight);
     }
 
-    if (rightIndex < bvh_node::bvh.size() && bvh_node::bvh[rightIndex].isLeaf) // save offset for right leaf
+    if (rightIndex < BVHBuilder::bvh.size() && BVHBuilder::bvh[rightIndex].isLeaf) // save offset for right leaf
     {
         savedRight = rightIndex; // index need next offset
     }
 }
 
-bool bvh_node::bounding_box(double time0, double time1, aabb& output_box) const
+bool BVHBuilder::bvhNodeInternal::bounding_box(double time0, double time1, aabb& output_box) const
 {
-    output_box = initBVH.box;
+    output_box = box;
     return true;
 }
 
-bool bvh_node::hit(const ray& r, double t_min, double t_max, hit_record& rec) const
+bool BVHBuilder::bvhNodeInternal::hit(const ray& r, double t_min, double t_max, hit_record& rec) const
 {
     // check if box hitted
-    if (!initBVH.box.hit(r, t_min, t_max))
+    if (!box.hit(r, t_min, t_max))
         return false;
 
     // check if triangle hitted
-    bool hit_left = initBVH.left->hit(r, t_min, t_max, rec);
-    bool hit_right = initBVH.right->hit(r, t_min, hit_left ? rec.t : t_max, rec);
+    bool hit_left = left->hit(r, t_min, t_max, rec);
+    bool hit_right = right->hit(r, t_min, hit_left ? rec.t : t_max, rec);
 
     return hit_left || hit_right;
 }
@@ -244,38 +288,6 @@ bool intersectRayTri(const ray& r, vec3 v0, vec3 v1, vec3 v2, hit_record& rec)
     return true;
 }
 
-bool bvh_node::hitAny(const ray& r, hit_record& rec)
-{
-    int nodeIndex = 1;
-
-    while (nodeIndex != -1)
-    {
-        BVHNode& node = bvh_node::bvh[nodeIndex];
-        if (node.isLeaf)
-        { // leaf node
-            if (intersectRayTri(r, node.coord[0], node.coord[1], node.coord[2], rec))
-            {
-                return true;
-            }
-        }
-        else if (!intersectBox(r, node.m_minBounds, node.m_maxBounds))
-        {
-            nodeIndex = node.m_nodeOffset;
-            continue;
-        }
-
-        int indexLeft = 2 * nodeIndex + 1;
-        if (node.isLeaf && node.m_nodeOffset != -1)
-            nodeIndex = node.m_nodeOffset;
-        else if (!node.isLeaf && indexLeft < bvh_node::bvh.size())
-            nodeIndex = indexLeft;
-        else
-            nodeIndex = node.m_nodeOffset;
-    }
-
-    return false;
-}
-
 inline bool box_compare(const shared_ptr<hittable> a, const shared_ptr<hittable> b, int axis)
 {
     aabb box_a;
@@ -302,7 +314,8 @@ bool box_z_compare(const shared_ptr<hittable> a, const shared_ptr<hittable> b)
     return box_compare(a, b, 2);
 }
 
-bvh_node::bvh_node(const std::vector<shared_ptr<hittable>>& src_objects, size_t start, size_t end, double time0, double time1)
+BVHBuilder::bvhNodeInternal::bvhNodeInternal(
+    const std::vector<shared_ptr<hittable>>& src_objects, size_t start, size_t end, double time0, double time1)
 {
     std::vector<shared_ptr<hittable>> objects = src_objects; // Create a modifiable array of the source scene objects
     int axis = random_int(0, 2);
@@ -312,35 +325,35 @@ bvh_node::bvh_node(const std::vector<shared_ptr<hittable>>& src_objects, size_t 
 
     if (object_span == 1)
     {
-        initBVH.left = initBVH.right = objects[start];
-        initBVH.indexLeft = objects[start]->getIndex();
-        initBVH.indexRight = -1;
+        left = right = objects[start];
+        indexLeft = objects[start]->getIndex();
+        indexRight = -1;
 
-        initBVH.coordLeft = objects[start]->getCoord();
+        coordLeft = objects[start]->getCoord();
     }
     else if (object_span == 2)
     {
         if (comparator(objects[start], objects[start + 1]))
         {
-            initBVH.left = objects[start];
-            initBVH.right = objects[start + 1];
+            left = objects[start];
+            right = objects[start + 1];
 
-            initBVH.indexLeft = objects[start]->getIndex();
-            initBVH.indexRight = objects[start + 1]->getIndex();
+            indexLeft = objects[start]->getIndex();
+            indexRight = objects[start + 1]->getIndex();
 
-            initBVH.coordLeft = objects[start]->getCoord();
-            initBVH.coordRight = objects[start + 1]->getCoord();
+            coordLeft = objects[start]->getCoord();
+            coordRight = objects[start + 1]->getCoord();
         }
         else
         {
-            initBVH.left = objects[start + 1];
-            initBVH.right = objects[start];
+            left = objects[start + 1];
+            right = objects[start];
 
-            initBVH.indexLeft = objects[start + 1]->getIndex();
-            initBVH.indexRight = objects[start]->getIndex();
+            indexLeft = objects[start + 1]->getIndex();
+            indexRight = objects[start]->getIndex();
 
-            initBVH.coordLeft = objects[start + 1]->getCoord();
-            initBVH.coordRight = objects[start]->getCoord();
+            coordLeft = objects[start + 1]->getCoord();
+            coordRight = objects[start]->getCoord();
         }
     }
     else
@@ -348,14 +361,14 @@ bvh_node::bvh_node(const std::vector<shared_ptr<hittable>>& src_objects, size_t 
         std::sort(objects.begin() + start, objects.begin() + end, comparator);
         auto mid = start + object_span / 2;
 
-        initBVH.left = make_shared<bvh_node>(objects, start, mid, time0, time1);
-        initBVH.right = make_shared<bvh_node>(objects, mid, end, time0, time1);
+        left = make_shared<bvhNodeInternal>(objects, start, mid, time0, time1);
+        right = make_shared<bvhNodeInternal>(objects, mid, end, time0, time1);
     }
 
     aabb box_left, box_right;
 
-    if (!initBVH.left->bounding_box(time0, time1, box_left) || !initBVH.right->bounding_box(time0, time1, box_right))
+    if (!left->bounding_box(time0, time1, box_left) || !right->bounding_box(time0, time1, box_right))
         std::cerr << "No bounding box in bvh_node constructor.\n";
 
-    initBVH.box = surrounding_box(box_left, box_right);
+    box = surrounding_box(box_left, box_right);
 }

@@ -25,7 +25,18 @@ public:
 
     virtual bool bounding_box(double time0, double time1, aabb& output_box) const override
     {
-        output_box = aabb(min(v0, min(v1, v2)), max(v0, max(v1, v2)));
+        float minX = min(v0.x(), min(v1.x(), v2.x()));
+        float minY = min(v0.y(), min(v1.y(), v2.y()));
+        float minZ = min(v0.z(), min(v1.z(), v2.z()));
+
+        float maxX = max(v0.x(), max(v1.x(), v2.x()));
+        float maxY = max(v0.y(), max(v1.y(), v2.y()));
+        float maxZ = max(v0.z(), max(v1.z(), v2.z()));
+
+        const float eps = 1e-7f;
+        // need to pad aabb to prevent from ultra thin box (zero width)
+        output_box = aabb(point3(minX, minY, minZ), point3(maxX + eps, maxY + eps, maxZ + eps));
+        
         return true;
     }
 
@@ -39,7 +50,7 @@ public:
         return { v0, v1, v2 };
     };
 
-    virtual void reconstruct(int index) const override{};
+    virtual void reconstruct(int index) override{};
 
     point3 v0, v1, v2;
     int index = -1;
@@ -48,7 +59,6 @@ public:
 
 bool triangle::hit(const ray& r, double t_min, double t_max, hit_record& rec) const
 {
-
     vec3 normal = cross(v1 - v0, v2 - v0);
 
     float t = 0.f, u = 0.f, v = 0.f;

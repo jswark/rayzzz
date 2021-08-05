@@ -31,5 +31,5 @@ public:
 
     [[nodiscard]] virtual std::vector<point3> getCoord() const = 0;
     [[nodiscard]] virtual int getIndex() const = 0;
-    virtual void reconstruct(int index) const = 0;
+    virtual void reconstruct(int index) = 0;
 };
